@@ -1,0 +1,671 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * External API for HRIS Integration
+ *
+ * @package    local_hris
+ * @copyright  2025 Prihantoosa <pht854@gmail.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
+require_once($CFG->libdir . '/externallib.php');
+
+/**
+ * HRIS external functions
+ */
+class local_hris_external extends external_api {
+
+    /**
+     * Returns description of method parameters
+     * @return external_function_parameters
+     */
+    public static function get_active_courses_parameters() {
+        return new external_function_parameters([
+            'apikey' => new external_value(PARAM_TEXT, 'API key for authentication')
+        ]);
+    }
+
+    /**
+     * Get list of active courses
+     * @param string $apikey API key
+     * @return array List of active courses
+     */
+    public static function get_active_courses($apikey) {
+        global $DB;
+
+        // Validate parameters
+        $params = self::validate_parameters(self::get_active_courses_parameters(), [
+            'apikey' => $apikey
+        ]);
+
+        // Validate API key
+        if (!self::validate_api_key($params['apikey'])) {
+            throw new moodle_exception('invalidapikey', 'local_hris');
+        }
+
+        // Get context
+        $context = context_system::instance();
+        self::validate_context($context);
+
+        // Get active courses (exclude site course)
+        $sql = "SELECT c.id, c.shortname, c.fullname, c.summary, c.startdate, c.enddate, c.visible
+                FROM {course} c 
+                WHERE c.id != :siteid 
+                AND c.visible = 1
+                ORDER BY c.fullname";
+        
+        $courses = $DB->get_records_sql($sql, ['siteid' => SITEID]);
+        
+        $result = [];
+        foreach ($courses as $course) {
+            $result[] = [
+                'id' => $course->id,
+                'shortname' => $course->shortname,
+                'fullname' => $course->fullname,
+                'summary' => strip_tags($course->summary),
+                'startdate' => $course->startdate,
+                'enddate' => $course->enddate,
+                'visible' => $course->visible
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Returns description of method result value
+     * @return external_description
+     */
+    public static function get_active_courses_returns() {
+        return new external_multiple_structure(
+            new external_single_structure([
+                'id' => new external_value(PARAM_INT, 'Course ID'),
+                'shortname' => new external_value(PARAM_TEXT, 'Course short name'),
+                'fullname' => new external_value(PARAM_TEXT, 'Course full name'),
+                'summary' => new external_value(PARAM_TEXT, 'Course summary'),
+                'startdate' => new external_value(PARAM_INT, 'Course start date'),
+                'enddate' => new external_value(PARAM_INT, 'Course end date'),
+                'visible' => new external_value(PARAM_INT, 'Course visibility')
+            ])
+        );
+    }
+
+    /**
+     * Returns description of method parameters
+     * @return external_function_parameters
+     */
+    public static function get_course_participants_parameters() {
+        return new external_function_parameters([
+            'apikey' => new external_value(PARAM_TEXT, 'API key for authentication'),
+            'courseid' => new external_value(PARAM_INT, 'Course ID', VALUE_OPTIONAL, 0)
+        ]);
+    }
+
+    /**
+     * Get participants in courses
+     * @param string $apikey API key
+     * @param int $courseid Course ID (0 for all courses)
+     * @return array List of participants
+     */
+    public static function get_course_participants($apikey, $courseid = 0) {
+        global $DB;
+
+        // Validate parameters
+        $params = self::validate_parameters(self::get_course_participants_parameters(), [
+            'apikey' => $apikey,
+            'courseid' => $courseid
+        ]);
+
+        // Validate API key
+        if (!self::validate_api_key($params['apikey'])) {
+            throw new moodle_exception('invalidapikey', 'local_hris');
+        }
+
+        // Get context
+        $context = context_system::instance();
+        self::validate_context($context);
+
+        // Build SQL based on course filter
+        // IMPORTANT: Use CONCAT to create unique key (user_id-course_id) to prevent duplicates
+        $sql = "SELECT CONCAT(u.id, '-', c.id) as id,
+                       u.id as user_id, u.email, u.firstname, u.lastname, 
+                       COALESCE(uid.data, '') as company_name,
+                       c.id as course_id, c.shortname, c.fullname as course_name,
+                       ue.timecreated as enrollment_date
+                FROM {user} u
+                JOIN {user_enrolments} ue ON u.id = ue.userid
+                JOIN {enrol} e ON ue.enrolid = e.id
+                JOIN {course} c ON e.courseid = c.id
+                LEFT JOIN {user_info_field} uif ON uif.shortname = 'branch'
+                LEFT JOIN {user_info_data} uid ON u.id = uid.userid AND uid.fieldid = uif.id
+                WHERE u.deleted = 0 
+                AND u.confirmed = 1
+                AND c.id != :siteid
+                AND c.visible = 1";
+
+        $sqlparams = ['siteid' => SITEID];
+
+        if ($params['courseid'] > 0) {
+            $sql .= " AND c.id = :courseid";
+            $sqlparams['courseid'] = $params['courseid'];
+        }
+
+        $sql .= " ORDER BY c.fullname, u.lastname, u.firstname";
+
+        $participants = $DB->get_records_sql($sql, $sqlparams);
+
+        $result = [];
+        foreach ($participants as $participant) {
+            $result[] = [
+                'user_id' => $participant->user_id,
+                'email' => $participant->email,
+                'firstname' => $participant->firstname,
+                'lastname' => $participant->lastname,
+                'company_name' => $participant->company_name ?: '',
+                'course_id' => $participant->course_id,
+                'course_shortname' => $participant->shortname,
+                'course_name' => $participant->course_name,
+                'enrollment_date' => $participant->enrollment_date
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Returns description of method result value
+     * @return external_description
+     */
+    public static function get_course_participants_returns() {
+        return new external_multiple_structure(
+            new external_single_structure([
+                'user_id' => new external_value(PARAM_INT, 'User ID'),
+                'email' => new external_value(PARAM_EMAIL, 'User email'),
+                'firstname' => new external_value(PARAM_TEXT, 'User first name'),
+                'lastname' => new external_value(PARAM_TEXT, 'User last name'),
+                'company_name' => new external_value(PARAM_TEXT, 'Company name'),
+                'course_id' => new external_value(PARAM_INT, 'Course ID'),
+                'course_shortname' => new external_value(PARAM_TEXT, 'Course short name'),
+                'course_name' => new external_value(PARAM_TEXT, 'Course name'),
+                'enrollment_date' => new external_value(PARAM_INT, 'Enrollment date')
+            ])
+        );
+    }
+
+    /**
+     * Returns description of method parameters
+     * @return external_function_parameters
+     */
+    public static function get_course_results_parameters() {
+        return new external_function_parameters([
+            'apikey' => new external_value(PARAM_TEXT, 'API key for authentication'),
+            'courseid' => new external_value(PARAM_INT, 'Course ID', VALUE_OPTIONAL, 0),
+            'userid' => new external_value(PARAM_INT, 'User ID', VALUE_OPTIONAL, 0)
+        ]);
+    }
+
+    /**
+     * Get course results with pre-test and post-test scores
+     * @param string $apikey API key
+     * @param int $courseid Course ID (0 for all courses)
+     * @param int $userid User ID (0 for all users)
+     * @return array List of course results
+     */
+    public static function get_course_results($apikey, $courseid = 0, $userid = 0) {
+        global $DB;
+
+        // Validate parameters
+        $params = self::validate_parameters(self::get_course_results_parameters(), [
+            'apikey' => $apikey,
+            'courseid' => $courseid,
+            'userid' => $userid
+        ]);
+
+        // Validate API key
+        if (!self::validate_api_key($params['apikey'])) {
+            throw new moodle_exception('invalidapikey', 'local_hris');
+        }
+
+        // Get context
+        $context = context_system::instance();
+        self::validate_context($context);
+
+        // Base SQL for getting enrollments
+        // IMPORTANT: Use CONCAT to create unique key (user_id-course_id) to prevent duplicates
+        // when same user is enrolled in multiple courses
+        $sql = "SELECT CONCAT(u.id, '-', c.id) as id,
+                       u.id as user_id, u.email, u.firstname, u.lastname,
+                       COALESCE(uid.data, '') as company_name,
+                       c.id as course_id, c.shortname, c.fullname as course_name,
+                       cc.timecompleted,
+                       COALESCE(gg.finalgrade, 0) as final_grade
+                FROM {user} u
+                JOIN {user_enrolments} ue ON u.id = ue.userid
+                JOIN {enrol} e ON ue.enrolid = e.id
+                JOIN {course} c ON e.courseid = c.id
+                LEFT JOIN {course_completions} cc ON u.id = cc.userid AND c.id = cc.course
+                LEFT JOIN {grade_items} gi ON c.id = gi.courseid AND gi.itemtype = 'course'
+                LEFT JOIN {grade_grades} gg ON u.id = gg.userid AND gi.id = gg.itemid
+                LEFT JOIN {user_info_field} uif ON uif.shortname = 'branch'
+                LEFT JOIN {user_info_data} uid ON u.id = uid.userid AND uid.fieldid = uif.id
+                WHERE u.deleted = 0 
+                AND u.confirmed = 1
+                AND c.id != :siteid
+                AND c.visible = 1";
+
+        $sqlparams = ['siteid' => SITEID];
+
+        if ($params['courseid'] > 0) {
+            $sql .= " AND c.id = :courseid";
+            $sqlparams['courseid'] = $params['courseid'];
+        }
+
+        if ($params['userid'] > 0) {
+            $sql .= " AND u.id = :userid";
+            $sqlparams['userid'] = $params['userid'];
+        }
+
+        $sql .= " ORDER BY c.fullname, u.lastname, u.firstname";
+
+        $results = $DB->get_records_sql($sql, $sqlparams);
+
+        $final_results = [];
+        foreach ($results as $result) {
+            // Get pre-test and post-test scores
+            $pretest_score = self::get_quiz_score($result->user_id, $result->course_id, 'pre');
+            $posttest_score = self::get_quiz_score($result->user_id, $result->course_id, 'post');
+
+            $final_results[] = [
+                'user_id' => $result->user_id,
+                'email' => $result->email,
+                'firstname' => $result->firstname,
+                'lastname' => $result->lastname,
+                'company_name' => $result->company_name ?: '',
+                'course_id' => $result->course_id,
+                'course_shortname' => $result->shortname,
+                'course_name' => $result->course_name,
+                'final_grade' => round($result->final_grade, 2),
+                'pretest_score' => $pretest_score,
+                'posttest_score' => $posttest_score,
+                'completion_date' => $result->timecompleted ?: 0,
+                'is_completed' => $result->timecompleted ? 1 : 0
+            ];
+        }
+
+        return $final_results;
+    }
+
+    /**
+     * Returns description of method result value
+     * @return external_description
+     */
+    public static function get_course_results_returns() {
+        return new external_multiple_structure(
+            new external_single_structure([
+                'user_id' => new external_value(PARAM_INT, 'User ID'),
+                'email' => new external_value(PARAM_EMAIL, 'User email'),
+                'firstname' => new external_value(PARAM_TEXT, 'User first name'),
+                'lastname' => new external_value(PARAM_TEXT, 'User last name'),
+                'company_name' => new external_value(PARAM_TEXT, 'Company name'),
+                'course_id' => new external_value(PARAM_INT, 'Course ID'),
+                'course_shortname' => new external_value(PARAM_TEXT, 'Course short name'),
+                'course_name' => new external_value(PARAM_TEXT, 'Course name'),
+                'final_grade' => new external_value(PARAM_FLOAT, 'Final grade'),
+                'pretest_score' => new external_value(PARAM_FLOAT, 'Pre-test score'),
+                'posttest_score' => new external_value(PARAM_FLOAT, 'Post-test score'),
+                'completion_date' => new external_value(PARAM_INT, 'Course completion date'),
+                'is_completed' => new external_value(PARAM_INT, 'Is course completed')
+            ])
+        );
+    }
+
+    /**
+     * Get quiz score based on custom field 'jenis_quiz'
+     * @param int $userid User ID
+     * @param int $courseid Course ID
+     * @param string $type Type of quiz (pre or post)
+     * @return float Quiz score
+     */
+    private static function get_quiz_score($userid, $courseid, $type) {
+        global $DB;
+
+        // Determine which value to look for (2 = PreTest, 3 = PostTest)
+        $fieldvalue = $type === 'pre' ? '2' : '3';
+        
+        $sql = "SELECT MAX(gg.finalgrade) as score
+                FROM {course_modules} cm
+                JOIN {modules} m ON m.id = cm.module AND m.name = 'quiz'
+                JOIN {customfield_data} cfd ON cfd.instanceid = cm.id AND cfd.value = :fieldvalue
+                JOIN {grade_items} gi ON gi.iteminstance = cm.instance AND gi.itemmodule = 'quiz'
+                LEFT JOIN {grade_grades} gg ON gg.itemid = gi.id AND gg.userid = :userid
+                WHERE cm.course = :courseid";
+
+        $result = $DB->get_record_sql($sql, [
+            'userid' => $userid,
+            'courseid' => $courseid,
+            'fieldvalue' => $fieldvalue
+        ]);
+
+        return $result && $result->score ? round($result->score, 2) : 0.00;
+    }
+
+    /**
+     * Get questionnaire scores for a user in a course
+     * 
+     * Looks for a Rate question in the questionnaire with exactly 9 choices.
+     * Each choice is rated by user on a scale (typically 1-5).
+     * 
+     * If Rate question has exactly 9 choices and responses exist:
+     *   - score_materi = average of choices 1-3
+     *   - score_trainer = average of choices 4-6
+    *   - score_fasilitas = average of choices 7-9
+     *   - score_total = average of all 9 choices
+     *   - questionnaire_available = 1
+     *
+     * If Rate question exists but doesn't have exactly 9 choices:
+     *   - Returns only score_total (average of all choices)
+     *   - questionnaire_available = 0
+     *   - Other scores = 0
+     *
+     * If no questionnaire, no Rate question, or no responses:
+     *   - Returns all scores as 0
+     *   - questionnaire_available = 0
+     *
+     * @param int $userid User ID
+     * @param int $courseid Course ID
+    * @return array Array with questionnaire_available, score_materi, score_trainer, score_fasilitas, score_total
+     */
+    private static function get_questionnaire_scores($userid, $courseid) {
+        global $DB;
+
+        // Default response
+        $default_response = [
+            'questionnaire_available' => 0,
+            'score_materi' => 0.00,
+            'score_trainer' => 0.00,
+            'score_fasilitas' => 0.00,
+            'score_total' => 0.00
+        ];
+
+        try {
+            // Step 1: Check if questionnaire module exists in the course
+            $questionnaire = $DB->get_record_sql(
+                "SELECT cm.id, q.id as questionnaire_id
+                 FROM {course_modules} cm
+                 JOIN {modules} m ON m.id = cm.module AND m.name = 'questionnaire'
+                 JOIN {questionnaire} q ON q.id = cm.instance
+                 WHERE cm.course = ? AND cm.visible = 1",
+                [$courseid]
+            );
+
+            if (!$questionnaire) {
+                return $default_response;
+            }
+
+            // Step 2: Find the Rate question (type_id = 8 for QUESRATE) in this questionnaire
+            $rate_question = $DB->get_record('questionnaire_question', [
+                'surveyid' => $questionnaire->questionnaire_id,
+                'type_id' => 8  // QUESRATE = 8
+            ]);
+
+            if (!$rate_question) {
+                return $default_response;
+            }
+
+            // Step 3: Count choices for this Rate question
+            $choice_count = $DB->count_records('questionnaire_quest_choice', [
+                'question_id' => $rate_question->id
+            ]);
+
+            // Step 4: Get response record for this user
+            $response_record = $DB->get_record('questionnaire_response', [
+                'questionnaireid' => $questionnaire->questionnaire_id,
+                'userid' => $userid
+            ]);
+
+            if (!$response_record) {
+                return $default_response;
+            }
+
+            // Step 5: Get all rating responses for the Rate question
+            // Rate question responses are stored in questionnaire_response_rank table
+            // Order by choice_id to maintain consistent order (choice 1, 2, 3, ...)
+            $sql = "SELECT qrr.id, qrr.response_id, qrr.question_id, qrr.choice_id, qrr.rankvalue,
+                           qqc.id as choice_id_in_table
+                    FROM {questionnaire_response_rank} qrr
+                    JOIN {questionnaire_quest_choice} qqc ON qqc.id = qrr.choice_id
+                    WHERE qrr.response_id = ? AND qrr.question_id = ?
+                    ORDER BY qqc.id ASC";
+
+            $responses = $DB->get_records_sql($sql, [$response_record->id, $rate_question->id]);
+
+            if (empty($responses)) {
+                return $default_response;
+            }
+
+            // Step 6: Extract rankvalues (scores) in order
+            // Ensure we have exactly the number of responses matching choice count
+            $response_values = [];
+            foreach ($responses as $response) {
+                $rankvalue = (float) $response->rankvalue;
+                // Include all rankvalues (even 0) to maintain position
+                $response_values[] = $rankvalue;
+            }
+
+
+            // Validate we got all responses
+            $score_total = round(
+                array_sum($response_values) / count($response_values),
+                2
+            );
+
+            if (count($response_values) !== $choice_count) {
+                // Mismatch between choices and responses - return only total score
+                $has_score = $score_total > 0;
+                return [
+                    'questionnaire_available' => $has_score ? 1 : 0,
+                    'score_materi' => 0.00,
+                    'score_trainer' => 0.00,
+                    'score_fasilitas' => 0.00,
+                    'score_total' => $score_total
+                ];
+            }
+
+            // Step 8: Check if exactly 9 choices for breakdown scores
+            if ($choice_count === 9) {
+                $score_materi = round(
+                    ($response_values[0] + $response_values[1] + $response_values[2]) / 3,
+                    2
+                );
+                $score_trainer = round(
+                    ($response_values[3] + $response_values[4] + $response_values[5]) / 3,
+                    2
+                );
+                $score_fasilitas = round(
+                    ($response_values[6] + $response_values[7] + $response_values[8]) / 3,
+                    2
+                );
+                $has_score = ($score_materi > 0 || $score_trainer > 0 || $score_fasilitas > 0 || $score_total > 0);
+                return [
+                    'questionnaire_available' => $has_score ? 1 : 0,
+                    'score_materi' => $score_materi,
+                    'score_trainer' => $score_trainer,
+                    'score_fasilitas' => $score_fasilitas,
+                    'score_total' => $score_total
+                ];
+            }
+
+            // Not exactly 9 choices - return only score_total
+            $has_score = $score_total > 0;
+            return [
+                'questionnaire_available' => $has_score ? 1 : 0,
+                'score_materi' => 0.00,
+                'score_trainer' => 0.00,
+                'score_fasilitas' => 0.00,
+                'score_total' => $score_total
+            ];
+
+        } catch (Exception $e) {
+            // Log error for debugging but return safe default
+            error_log("Questionnaire error for user {$userid}, course {$courseid}: " . $e->getMessage());
+            return $default_response;
+        }
+    }
+
+    /**
+     * Validate API key
+     * @param string $apikey API key to validate
+     * @return bool True if valid, false otherwise
+     */
+    private static function validate_api_key($apikey) {
+        $stored_key = get_config('local_hris', 'api_key');
+        return !empty($stored_key) && $apikey === $stored_key;
+    }
+    
+    /**
+     * Returns description of method parameters for get_all_course_results
+     * @return external_function_parameters
+     */
+    public static function get_all_course_results_parameters() {
+        return new external_function_parameters([
+            'apikey' => new external_value(PARAM_TEXT, 'API key for authentication'),
+            'courseid' => new external_value(PARAM_INT, 'Course ID', VALUE_OPTIONAL, 0),
+        ]);
+    }
+
+    /**
+     * Public endpoint: Get aggregated questionnaire scores for all courses
+     * @param string $apikey API key
+     * @param int $courseid Course ID (0 for all courses)
+     * @param string $company_name Company name filter (empty for all)
+     */
+    public static function get_all_course_results($apikey, $courseid = 0) {
+        global $DB;
+
+        $params = self::validate_parameters(self::get_all_course_results_parameters(), [
+            'apikey' => $apikey,
+            'courseid' => $courseid,
+        ]);
+
+        if (!self::validate_api_key($params['apikey'])) {
+            throw new moodle_exception('invalidapikey', 'local_hris');
+        }
+
+        $context = context_system::instance();
+        self::validate_context($context);
+
+        // Get all enrollments with grades and completion data with optional filters
+        // IMPORTANT: Use CONCAT to create unique key (user_id-course_id) to prevent duplicates
+        // when same user is enrolled in multiple courses
+        $sql = "SELECT CONCAT(u.id, '-', c.id) as id,
+                       u.id as user_id, u.email, u.firstname, u.lastname,
+                       COALESCE(uid.data, '') as company_name,
+                       c.id as course_id, c.shortname, c.fullname as course_name,
+                       cc.timecompleted,
+                       COALESCE(gg.finalgrade, 0) as final_grade
+                FROM {user} u
+                JOIN {user_enrolments} ue ON u.id = ue.userid
+                JOIN {enrol} e ON ue.enrolid = e.id
+                JOIN {course} c ON e.courseid = c.id
+                LEFT JOIN {course_completions} cc ON u.id = cc.userid AND c.id = cc.course
+                LEFT JOIN {grade_items} gi ON c.id = gi.courseid AND gi.itemtype = 'course'
+                LEFT JOIN {grade_grades} gg ON u.id = gg.userid AND gi.id = gg.itemid
+                LEFT JOIN {user_info_field} uif ON uif.shortname = 'branch'
+                LEFT JOIN {user_info_data} uid ON u.id = uid.userid AND uid.fieldid = uif.id
+                WHERE u.deleted = 0 
+                AND u.confirmed = 1
+                AND c.id != :siteid
+                AND c.visible = 1";
+
+        $sqlparams = ['siteid' => SITEID];
+
+        if ($params['courseid'] > 0) {
+            $sql .= " AND c.id = :courseid";
+            $sqlparams['courseid'] = $params['courseid'];
+        }
+
+
+        $sql .= " ORDER BY c.fullname, u.lastname, u.firstname";
+
+        $records = $DB->get_records_sql($sql, $sqlparams);
+
+        $result = [];
+        foreach ($records as $r) {
+            // Get pre-test and post-test scores
+            $pretest_score = self::get_quiz_score($r->user_id, $r->course_id, 'pre');
+            $posttest_score = self::get_quiz_score($r->user_id, $r->course_id, 'post');
+
+            // Get questionnaire scores
+            $questionnaire_data = self::get_questionnaire_scores($r->user_id, $r->course_id);
+
+            $result[] = [
+                'course_id' => (int)$r->course_id,
+                'course_name' => (string)$r->course_name,
+                'course_shortname' => (string)$r->shortname,
+                'user_id' => (int)$r->user_id,
+                'firstname' => (string)$r->firstname,
+                'lastname' => (string)$r->lastname,
+                'email' => (string)$r->email,
+                'company_name' => (string)($r->company_name ?: ''),
+                'final_grade' => (float)round($r->final_grade, 2),
+                'pretest_score' => (float)$pretest_score,
+                'posttest_score' => (float)$posttest_score,
+                'completion_date' => (int)($r->timecompleted ?: 0),
+                'is_completed' => (int)($r->timecompleted ? 1 : 0),
+                'questionnaire_available' => (int)$questionnaire_data['questionnaire_available'],
+                'score_materi' => (float)$questionnaire_data['score_materi'],
+                'score_trainer' => (float)$questionnaire_data['score_trainer'],
+                'score_fasilitas' => (float)$questionnaire_data['score_fasilitas'],
+                'score_total' => (float)$questionnaire_data['score_total']
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Returns description of method result value for all course results
+     * @return external_description
+     */
+    public static function get_all_course_results_returns() {
+        return new external_multiple_structure(
+            new external_single_structure([
+                'course_id' => new external_value(PARAM_INT, 'Course ID'),
+                'course_name' => new external_value(PARAM_TEXT, 'Course name'),
+                'course_shortname' => new external_value(PARAM_TEXT, 'Course short name'),
+                'user_id' => new external_value(PARAM_INT, 'User ID'),
+                'firstname' => new external_value(PARAM_TEXT, 'User first name'),
+                'lastname' => new external_value(PARAM_TEXT, 'User last name'),
+                'email' => new external_value(PARAM_TEXT, 'User email'),
+                'company_name' => new external_value(PARAM_TEXT, 'Company name'),
+                'final_grade' => new external_value(PARAM_FLOAT, 'Final grade'),
+                'pretest_score' => new external_value(PARAM_FLOAT, 'Pre-test score'),
+                'posttest_score' => new external_value(PARAM_FLOAT, 'Post-test score'),
+                'completion_date' => new external_value(PARAM_INT, 'Course completion date'),
+                'is_completed' => new external_value(PARAM_INT, 'Is course completed'),
+                'questionnaire_available' => new external_value(PARAM_INT, 'Questionnaire available (1) or not (0)'),
+                'score_materi' => new external_value(PARAM_FLOAT, 'Average score of questions 1-3 (Material)'),
+                'score_trainer' => new external_value(PARAM_FLOAT, 'Average score of questions 4-6 (Trainer)'),
+                'score_fasilitas' => new external_value(PARAM_FLOAT, 'Average score of questions 7-9 (Venue)'),
+                'score_total' => new external_value(PARAM_FLOAT, 'Overall average score')
+            ])
+        );
+    }
+
+}
