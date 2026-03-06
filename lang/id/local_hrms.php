@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Indonesian language pack for HRIS Integration
+ * Indonesian language pack for HRMS Integration
  *
- * @package    local_hris
+ * @package    local_hrms
  * @category   string
  * @copyright  2025 Prihantoosa <pht854@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -25,10 +25,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname'] = 'Integrasi HRIS';
-$string['hris_api_enabled'] = 'Aktifkan API HRIS';
-$string['hris_api_enabled_desc'] = 'Aktifkan layanan web API untuk HRIS';
-$string['hris_api_key'] = 'Kunci API';
-$string['hris_api_key_desc'] = 'Kunci API rahasia untuk otentikasi sistem HRIS';
-$string['hris_settings'] = 'Pengaturan Integrasi HRIS';
-$string['privacy:metadata'] = 'Plugin Integrasi HRIS tidak menyimpan data pribadi apapun.';
+$string['pluginname'] = 'Integrasi HRMS';
+$string['hrms_api_enabled'] = 'Aktifkan API HRMS';
+$string['hrms_api_enabled_desc'] = 'Aktifkan layanan web API untuk HRMS';
+$string['hrms_api_key'] = 'Kunci API';
+$string['hrms_api_key_desc'] = 'Kunci API rahasia untuk otentikasi sistem HRMS';
+$string['hrms_settings'] = 'Pengaturan Integrasi HRMS';
+$string['privacy:metadata'] = 'Plugin Integrasi HRMS tidak menyimpan data pribadi apapun.';

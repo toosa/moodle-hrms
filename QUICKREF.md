@@ -1,4 +1,4 @@
-# HRIS Plugin - Quick Reference Guide
+# HRMS Plugin - Quick Reference Guide
 
 ## � Prerequisites
 
@@ -45,14 +45,14 @@ WHERE value IN ('2','3');
 ### Installation (5 minutes)
 ```bash
 cd /path/to/moodle/local/
-git clone https://github.com/toosa/moodle-hris.git hris
+git clone https://github.com/toosa/moodle-hrms.git hrms
 php ../../admin/cli/upgrade.php --non-interactive
 ```
 
 ### Configuration (5 minutes)
 1. Enable Web Services: **Site Admin → Advanced Features → Enable web services** ✅
 2. Enable REST: **Site Admin → Plugins → Web services → Manage protocols → REST** ✅
-3. Set API Key: **Site Admin → Plugins → Local → HRIS Integration** 🔑
+3. Set API Key: **Site Admin → Plugins → Local → HRMS Integration** 🔑
 4. Create Token: **Site Admin → Plugins → Web services → Manage tokens** 🎫
 
 ---
@@ -78,13 +78,13 @@ POST https://yourmoodle.com/webservice/rest/server.php
 
 ### 1. Get Active Courses
 
-**Function**: `local_hris_get_active_courses`
+**Function**: `local_hrms_get_active_courses`
 
 **Request**:
 ```bash
 curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
   -d "wstoken=YOUR_TOKEN" \
-  -d "wsfunction=local_hris_get_active_courses" \
+  -d "wsfunction=local_hrms_get_active_courses" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY"
 ```
@@ -106,7 +106,7 @@ curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
 
 ### 2. Get Course Participants
 
-**Function**: `local_hris_get_course_participants`
+**Function**: `local_hrms_get_course_participants`
 
 **Extra Parameters**:
 | Parameter | Type | Required | Default | Description |
@@ -117,7 +117,7 @@ curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
 ```bash
 curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
   -d "wstoken=YOUR_TOKEN" \
-  -d "wsfunction=local_hris_get_course_participants" \
+  -d "wsfunction=local_hrms_get_course_participants" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY" \
   -d "courseid=5"
@@ -142,7 +142,7 @@ curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
 
 ### 3. Get Course Results
 
-**Function**: `local_hris_get_course_results`
+**Function**: `local_hrms_get_course_results`
 
 **Extra Parameters**:
 | Parameter | Type | Required | Default | Description |
@@ -154,7 +154,7 @@ curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
 ```bash
 curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
   -d "wstoken=YOUR_TOKEN" \
-  -d "wsfunction=local_hris_get_course_results" \
+  -d "wsfunction=local_hrms_get_course_results" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY" \
   -d "courseid=5" \
@@ -225,7 +225,7 @@ curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
 
 ### Test Endpoint
 ```
-https://yourmoodle.com/local/hris/test_api.php
+https://yourmoodle.com/local/hrms/test_api.php
 ```
 
 ### Quick Test Commands
@@ -240,7 +240,7 @@ Expected: 200 OK
 ```bash
 curl -X POST https://yourmoodle.com/webservice/rest/server.php \
   -d "wstoken=INVALID" \
-  -d "wsfunction=local_hris_get_active_courses" \
+  -d "wsfunction=local_hrms_get_active_courses" \
   -d "moodlewsrestformat=json"
 ```
 Expected: webservice_access_exception
@@ -249,7 +249,7 @@ Expected: webservice_access_exception
 ```bash
 curl -X POST https://yourmoodle.com/webservice/rest/server.php \
   -d "wstoken=YOUR_VALID_TOKEN" \
-  -d "wsfunction=local_hris_get_active_courses" \
+  -d "wsfunction=local_hrms_get_active_courses" \
   -d "moodlewsrestformat=json" \
   -d "apikey=WRONG_KEY"
 ```
@@ -259,7 +259,7 @@ Expected: Invalid API Key error
 ```bash
 curl -X POST https://yourmoodle.com/webservice/rest/server.php \
   -d "wstoken=YOUR_VALID_TOKEN" \
-  -d "wsfunction=local_hris_get_active_courses" \
+  -d "wsfunction=local_hrms_get_active_courses" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY"
 ```
@@ -355,7 +355,7 @@ Before going to production:
 - [Design Documentation](DESIGN.md)
 - [Sequence Diagrams](DIAGRAMS.md)
 - [Moodle Web Services Docs](https://docs.moodle.org/dev/Web_services)
-- [Test Interface](https://yourmoodle.com/local/hris/test_api.php)
+- [Test Interface](https://yourmoodle.com/local/hrms/test_api.php)
 
 ---
 
@@ -374,9 +374,9 @@ Before going to production:
 
 ## 📞 Get Help
 
-- 📧 [GitHub Issues](https://github.com/toosa/moodle-hris/issues)
-- 💬 [Discussions](https://github.com/toosa/moodle-hris/discussions)
-- 📖 [Wiki](https://github.com/toosa/moodle-hris/wiki)
+- 📧 [GitHub Issues](https://github.com/toosa/moodle-hrms/issues)
+- 💬 [Discussions](https://github.com/toosa/moodle-hrms/discussions)
+- 📖 [Wiki](https://github.com/toosa/moodle-hrms/wiki)
 - 🌐 [Author Website](https://openstat.toosa.id)
 
 ---

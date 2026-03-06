@@ -1,8 +1,8 @@
 <?php
 /**
- * CLI script to update HRIS service with all functions
+ * CLI script to update HRMS service with all functions
  *
- * @package    local_hris
+ * @package    local_hrms
  * @copyright  2025 Prihantoosa
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -13,16 +13,16 @@ require(__DIR__.'/../../../config.php');
 require_once($CFG->libdir.'/clilib.php');
 
 // Get the service
-$service = $DB->get_record('external_services', ['shortname' => 'hris_service']);
+$service = $DB->get_record('external_services', ['shortname' => 'hrms_service']);
 
 if (!$service) {
-    cli_error('HRIS service not found!');
+    cli_error('HRMS service not found!');
 }
 
 echo "Found service: {$service->name} (ID: {$service->id})\n";
 
-// Get all local_hris functions
-$functions = $DB->get_records('external_functions', ['component' => 'local_hris']);
+// Get all local_hrms functions
+$functions = $DB->get_records('external_functions', ['component' => 'local_hrms']);
 
 echo "Found " . count($functions) . " functions:\n";
 

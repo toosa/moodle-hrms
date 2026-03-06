@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * English language pack for HRIS Integration
+ * English language pack for HRMS Integration
  *
- * @package    local_hris
+ * @package    local_hrms
  * @category   string
  * @copyright  2025 Prihantoosa <pht854@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -25,10 +25,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname'] = 'HRIS Integration';
-$string['hris_api_enabled'] = 'Enable HRIS API';
-$string['hris_api_enabled_desc'] = 'Enable the HRIS web services API';
-$string['hris_api_key'] = 'API Key';
-$string['hris_api_key_desc'] = 'Secret API key for HRIS system authentication';
-$string['hris_settings'] = 'HRIS Integration Settings';
-$string['privacy:metadata'] = 'The HRIS Integration plugin does not store any personal data.';
+$string['pluginname'] = 'HRMS Integration';
+$string['hrms_api_enabled'] = 'Enable HRMS API';
+$string['hrms_api_enabled_desc'] = 'Enable the HRMS web services API';
+$string['hrms_api_key'] = 'API Key';
+$string['hrms_api_key_desc'] = 'Secret API key for HRMS system authentication';
+$string['hrms_settings'] = 'HRMS Integration Settings';
+$string['privacy:metadata'] = 'The HRMS Integration plugin does not store any personal data.';

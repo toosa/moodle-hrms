@@ -1,4 +1,4 @@
-# HRIS Integration - Changelog
+# HRMS Integration - Changelog
 
 ## Version 1.1.0 (2026-01-12)
 
@@ -83,9 +83,9 @@ If you have existing quizzes identified by naming patterns:
 
 ### API Changes
 No breaking changes. API endpoints remain the same:
-- `local_hris_get_active_courses`
-- `local_hris_get_course_participants`
-- `local_hris_get_course_results`
+- `local_hrms_get_active_courses`
+- `local_hrms_get_course_participants`
+- `local_hrms_get_course_results`
 
 ### Bug Fixes
 - Fixed MySQL GROUP BY compatibility issue

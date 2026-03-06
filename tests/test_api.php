@@ -1,9 +1,9 @@
 <?php
 /**
- * Test script for HRIS API functions
+ * Test script for HRMS API functions
  * 
  * Run from command line:
- * php local/hris/tests/test_api.php
+ * php local/hrms/tests/test_api.php
  */
 
 define('CLI_SCRIPT', true);
@@ -11,10 +11,10 @@ require_once(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/externallib.php');
 
 // Create a test class that bypasses context validation
-class local_hris_external_test {
+class local_hrms_external_test {
     
     public static function validate_api_key($apikey) {
-        $stored_key = get_config('local_hris', 'api_key');
+        $stored_key = get_config('local_hrms', 'api_key');
         return !empty($stored_key) && $apikey === $stored_key;
     }
     
@@ -196,13 +196,13 @@ class local_hris_external_test {
     }
 }
 
-echo "=== HRIS API Test Script ===\n\n";
+echo "=== HRMS API Test Script ===\n\n";
 
 // Get API key from config
-$apikey = get_config('local_hris', 'api_key');
+$apikey = get_config('local_hrms', 'api_key');
 
 if (empty($apikey)) {
-    die("ERROR: API key not configured. Please set it in Site Administration > Plugins > Local plugins > HRIS Integration\n");
+    die("ERROR: API key not configured. Please set it in Site Administration > Plugins > Local plugins > HRMS Integration\n");
 }
 
 echo "✓ API Key found: " . substr($apikey, 0, 10) . "...\n\n";
@@ -210,7 +210,7 @@ echo "✓ API Key found: " . substr($apikey, 0, 10) . "...\n\n";
 // Test 1: Get Active Courses
 echo "--- Test 1: get_active_courses ---\n";
 try {
-    $courses = local_hris_external_test::test_get_active_courses($apikey);
+    $courses = local_hrms_external_test::test_get_active_courses($apikey);
     echo "✓ Success! Found " . count($courses) . " active courses\n";
     
     if (!empty($courses)) {
@@ -226,7 +226,7 @@ echo "\n";
 // Test 2: Get Course Participants (all courses)
 echo "--- Test 2: get_course_participants (all courses) ---\n";
 try {
-    $participants = local_hris_external_test::test_get_course_participants($apikey, 0);
+    $participants = local_hrms_external_test::test_get_course_participants($apikey, 0);
     echo "✓ Success! Found " . count($participants) . " participants\n";
     
     if (!empty($participants)) {
@@ -246,7 +246,7 @@ echo "\n";
 if (isset($sample_course_id)) {
     echo "--- Test 3: get_course_participants (course ID: $sample_course_id) ---\n";
     try {
-        $participants = local_hris_external_test::test_get_course_participants($apikey, $sample_course_id);
+        $participants = local_hrms_external_test::test_get_course_participants($apikey, $sample_course_id);
         echo "✓ Success! Found " . count($participants) . " participants in this course\n";
     } catch (Exception $e) {
         echo "✗ Error: " . $e->getMessage() . "\n";
@@ -257,7 +257,7 @@ if (isset($sample_course_id)) {
 // Test 4: Get Course Results (all)
 echo "--- Test 4: get_course_results (all) ---\n";
 try {
-    $results = local_hris_external_test::test_get_course_results($apikey, 0, 0);
+    $results = local_hrms_external_test::test_get_course_results($apikey, 0, 0);
     echo "✓ Success! Found " . count($results) . " results\n";
     
     if (!empty($results)) {

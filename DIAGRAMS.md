@@ -1,6 +1,6 @@
-# HRIS Plugin - Sequence Diagrams
+# HRMS Plugin - Sequence Diagrams
 
-This document contains all sequence diagrams for the HRIS Integration Plugin in Mermaid format.
+This document contains all sequence diagrams for the HRMS Integration Plugin in Mermaid format.
 
 ## Table of Contents
 1. [Complete Request-Response Cycle](#1-complete-request-response-cycle)
@@ -18,11 +18,11 @@ This document contains all sequence diagrams for the HRIS Integration Plugin in 
 
 ```mermaid
 sequenceDiagram
-    participant Client as HRIS Client
+    participant Client as HRMS Client
     participant Server as Web Server
     participant WS as Moodle Web Service
     participant Token as Token Validator
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant DB as Moodle Database
     
     Client->>Server: HTTPS POST Request
@@ -64,21 +64,21 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant HRIS as HRIS System
+    participant HRMS as HRMS System
     participant WS as Moodle Web Service
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant DB as Moodle Database
     
-    HRIS->>WS: POST /webservice/rest/server.php
-    Note over HRIS,WS: wstoken + apikey + wsfunction
+    HRMS->>WS: POST /webservice/rest/server.php
+    Note over HRMS,WS: wstoken + apikey + wsfunction
     
-    WS->>API: local_hris_get_active_courses(apikey)
+    WS->>API: local_hrms_get_active_courses(apikey)
     
     API->>API: validate_parameters(apikey)
     API->>API: validate_api_key(apikey)
     
     alt API Key Invalid
-        API-->>HRIS: Error: Invalid API Key
+        API-->>HRMS: Error: Invalid API Key
     else API Key Valid
         API->>API: validate_context(system)
         API->>DB: SELECT courses WHERE visible=1
@@ -89,7 +89,7 @@ sequenceDiagram
         end
         
         API-->>WS: Array of courses
-        WS-->>HRIS: JSON Response
+        WS-->>HRMS: JSON Response
     end
 ```
 
@@ -98,7 +98,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Client
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant Validator
     participant DB as Database
     
@@ -136,13 +136,13 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant HRIS as HRIS System
+    participant HRMS as HRMS System
     participant WS as Moodle Web Service
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant DB as Moodle Database
     
-    HRIS->>WS: POST /webservice/rest/server.php
-    Note over HRIS,WS: wstoken + apikey + wsfunction + courseid
+    HRMS->>WS: POST /webservice/rest/server.php
+    Note over HRMS,WS: wstoken + apikey + wsfunction + courseid
     
     WS->>API: get_course_participants(apikey, courseid)
     
@@ -150,7 +150,7 @@ sequenceDiagram
     API->>API: validate_api_key(apikey)
     
     alt API Key Invalid
-        API-->>HRIS: Error: Invalid API Key
+        API-->>HRMS: Error: Invalid API Key
     else API Key Valid
         API->>API: validate_context(system)
         
@@ -167,7 +167,7 @@ sequenceDiagram
         end
         
         API-->>WS: Array of participants
-        WS-->>HRIS: JSON Response
+        WS-->>HRMS: JSON Response
     end
 ```
 
@@ -176,7 +176,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Client
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant DB as Database
     
     Client->>API: get_course_participants(apikey, courseid)
@@ -206,13 +206,13 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant HRIS as HRIS System
+    participant HRMS as HRMS System
     participant WS as Moodle Web Service
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant DB as Moodle Database
     
-    HRIS->>WS: POST /webservice/rest/server.php
-    Note over HRIS,WS: wstoken + apikey + wsfunction + courseid + userid
+    HRMS->>WS: POST /webservice/rest/server.php
+    Note over HRMS,WS: wstoken + apikey + wsfunction + courseid + userid
     
     WS->>API: get_course_results(apikey, courseid, userid)
     
@@ -220,7 +220,7 @@ sequenceDiagram
     API->>API: validate_api_key(apikey)
     
     alt API Key Invalid
-        API-->>HRIS: Error: Invalid API Key
+        API-->>HRMS: Error: Invalid API Key
     else API Key Valid
         API->>API: validate_context(system)
         
@@ -243,7 +243,7 @@ sequenceDiagram
         end
         
         API-->>WS: Array of results
-        WS-->>HRIS: JSON Response
+        WS-->>HRMS: JSON Response
     end
 ```
 
@@ -252,7 +252,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Client
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant DB as Database
     
     Client->>API: get_course_results(apikey, courseid, userid)
@@ -284,13 +284,13 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant HRIS as HRIS System
+    participant HRMS as HRMS System
     participant WS as Moodle Web Service
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant DB as Moodle Database
     
-    HRIS->>WS: POST /webservice/rest/server.php
-    Note over HRIS,WS: wstoken + apikey + wsfunction + format
+    HRMS->>WS: POST /webservice/rest/server.php
+    Note over HRMS,WS: wstoken + apikey + wsfunction + format
     
     WS->>API: get_all_course_results(apikey, format)
     
@@ -298,7 +298,7 @@ sequenceDiagram
     API->>API: validate_api_key(apikey)
     
     alt API Key Invalid
-        API-->>HRIS: Error: Invalid API Key
+        API-->>HRMS: Error: Invalid API Key
     else API Key Valid
         API->>API: validate_context(system)
         
@@ -320,7 +320,7 @@ sequenceDiagram
         end
         
         API-->>WS: Array of comprehensive results
-        WS-->>HRIS: JSON Response with all metrics
+        WS-->>HRMS: JSON Response with all metrics
     end
 ```
 
@@ -329,7 +329,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Client
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant Helper as Helper Methods
     participant DB as Database
     
@@ -525,7 +525,7 @@ sequenceDiagram
     participant Client as External Client
     participant WS as Moodle Web Service
     participant Auth as Token Validation
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant Config as Plugin Config
     
     Client->>WS: Request with wstoken
@@ -536,7 +536,7 @@ sequenceDiagram
     else Token Valid
         Auth->>API: Call web service function
         API->>API: Extract apikey parameter
-        API->>Config: get_config('local_hris', 'api_key')
+        API->>Config: get_config('local_hrms', 'api_key')
         Config-->>API: Stored API key
         
         alt API Key Mismatch
@@ -555,7 +555,7 @@ sequenceDiagram
     participant Client
     participant WS as Web Service
     participant TokenDB as Token Storage
-    participant API as local_hris
+    participant API as local_hrms
     participant ConfigDB as Config Storage
     
     Client->>WS: Request + wstoken
@@ -571,7 +571,7 @@ sequenceDiagram
         
         WS->>API: Call function + apikey
         
-        API->>ConfigDB: get_config('local_hris', 'api_key')
+        API->>ConfigDB: get_config('local_hrms', 'api_key')
         ConfigDB-->>API: stored_key
         
         API->>API: Compare apikey === stored_key
@@ -593,7 +593,7 @@ sequenceDiagram
 sequenceDiagram
     participant Client
     participant WS as Web Service
-    participant API as local_hris
+    participant API as local_hrms
     
     Client->>WS: Request with invalid token
     WS->>WS: Validate token
@@ -621,7 +621,7 @@ sequenceDiagram
 sequenceDiagram
     participant Client
     participant WS as Web Service
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant DB as Database
     
     Note over Client,DB: Scenario 1: Invalid Token

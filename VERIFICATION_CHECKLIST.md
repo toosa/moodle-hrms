@@ -221,7 +221,7 @@
 
 ### Before Production
 1. [ ] Install fresh Moodle 4.5+
-2. [ ] Install local_hris plugin
+2. [ ] Install local_hrms plugin
 3. [ ] Follow README.md configuration steps
 4. [ ] Follow QUICKREF.md prerequisites
 5. [ ] Create custom field 'jenis_quiz'

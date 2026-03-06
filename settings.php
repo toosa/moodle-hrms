@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Settings for local_hris
+ * Settings for local_hrms
  *
- * @package    local_hris
+ * @package    local_hrms
  * @copyright  2025 Prihantoosa <pht854@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -25,22 +25,22 @@
 defined('MOODLE_INTERNAL') || die;
 
 if ($hassiteconfig) {
-    $settings = new admin_settingpage('local_hris', get_string('pluginname', 'local_hris'));
+    $settings = new admin_settingpage('local_hrms', get_string('pluginname', 'local_hrms'));
     $ADMIN->add('localplugins', $settings);
 
-    // Enable/Disable HRIS API
+    // Enable/Disable HRMS API
     $settings->add(new admin_setting_configcheckbox(
-        'local_hris/api_enabled',
-        get_string('hris_api_enabled', 'local_hris'),
-        get_string('hris_api_enabled_desc', 'local_hris'),
+        'local_hrms/api_enabled',
+        get_string('hrms_api_enabled', 'local_hrms'),
+        get_string('hrms_api_enabled_desc', 'local_hrms'),
         1
     ));
 
     // API Key setting
     $settings->add(new admin_setting_configpasswordunmask(
-        'local_hris/api_key',
-        get_string('hris_api_key', 'local_hris'),
-        get_string('hris_api_key_desc', 'local_hris'),
+        'local_hrms/api_key',
+        get_string('hrms_api_key', 'local_hrms'),
+        get_string('hrms_api_key_desc', 'local_hrms'),
         ''
     ));
 }

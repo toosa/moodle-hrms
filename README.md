@@ -1,6 +1,6 @@
-# Moodle HRIS Integration Plugin (local_hris)
+# Moodle HRMS Integration Plugin (local_hrms)
 
-A comprehensive web service plugin for Moodle that provides REST API endpoints for HRIS (Human Resource Information System) integration.
+A comprehensive web service plugin for Moodle that provides REST API endpoints for HRMS (Human Resource Information System) integration.
 
 ![Moodle Version](https://img.shields.io/badge/Moodle-4.0%2B-blue)
 ![PHP Version](https://img.shields.io/badge/PHP-7.4%2B-green)
@@ -21,7 +21,7 @@ A comprehensive web service plugin for Moodle that provides REST API endpoints f
 
 ```
 ┌─────────────────────┐
-│   HRIS System       │
+│   HRMS System       │
 │  (External Client)  │
 └──────────┬──────────┘
            │ HTTPS/REST
@@ -34,7 +34,7 @@ A comprehensive web service plugin for Moodle that provides REST API endpoints f
            │
            ▼
 ┌─────────────────────┐
-│   local_hris        │
+│   local_hrms        │
 │   External API      │
 │  (Authentication    │
 │   & Validation)     │
@@ -52,7 +52,7 @@ A comprehensive web service plugin for Moodle that provides REST API endpoints f
 
 ```
 ┌────────────────────────────────────────────────────┐
-│            local_hris Plugin                       │
+│            local_hrms Plugin                       │
 │                                                    │
 │  ┌──────────────────────────────────────────┐    │
 │  │  external.php (External API Class)       │    │
@@ -91,21 +91,21 @@ A comprehensive web service plugin for Moodle that provides REST API endpoints f
 
 ```mermaid
 sequenceDiagram
-    participant HRIS as HRIS System
+    participant HRMS as HRMS System
     participant WS as Moodle Web Service
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant DB as Moodle Database
     
-    HRIS->>WS: POST /webservice/rest/server.php
-    Note over HRIS,WS: wstoken + apikey + wsfunction
+    HRMS->>WS: POST /webservice/rest/server.php
+    Note over HRMS,WS: wstoken + apikey + wsfunction
     
-    WS->>API: local_hris_get_active_courses(apikey)
+    WS->>API: local_hrms_get_active_courses(apikey)
     
     API->>API: validate_parameters(apikey)
     API->>API: validate_api_key(apikey)
     
     alt API Key Invalid
-        API-->>HRIS: Error: Invalid API Key
+        API-->>HRMS: Error: Invalid API Key
     else API Key Valid
         API->>API: validate_context(system)
         API->>DB: SELECT courses WHERE visible=1
@@ -116,7 +116,7 @@ sequenceDiagram
         end
         
         API-->>WS: Array of courses
-        WS-->>HRIS: JSON Response
+        WS-->>HRMS: JSON Response
     end
 ```
 
@@ -124,13 +124,13 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant HRIS as HRIS System
+    participant HRMS as HRMS System
     participant WS as Moodle Web Service
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant DB as Moodle Database
     
-    HRIS->>WS: POST /webservice/rest/server.php
-    Note over HRIS,WS: wstoken + apikey + wsfunction + courseid
+    HRMS->>WS: POST /webservice/rest/server.php
+    Note over HRMS,WS: wstoken + apikey + wsfunction + courseid
     
     WS->>API: get_course_participants(apikey, courseid)
     
@@ -138,7 +138,7 @@ sequenceDiagram
     API->>API: validate_api_key(apikey)
     
     alt API Key Invalid
-        API-->>HRIS: Error: Invalid API Key
+        API-->>HRMS: Error: Invalid API Key
     else API Key Valid
         API->>API: validate_context(system)
         
@@ -155,7 +155,7 @@ sequenceDiagram
         end
         
         API-->>WS: Array of participants
-        WS-->>HRIS: JSON Response
+        WS-->>HRMS: JSON Response
     end
 ```
 
@@ -163,13 +163,13 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant HRIS as HRIS System
+    participant HRMS as HRMS System
     participant WS as Moodle Web Service
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant DB as Moodle Database
     
-    HRIS->>WS: POST /webservice/rest/server.php
-    Note over HRIS,WS: wstoken + apikey + wsfunction + courseid + userid
+    HRMS->>WS: POST /webservice/rest/server.php
+    Note over HRMS,WS: wstoken + apikey + wsfunction + courseid + userid
     
     WS->>API: get_course_results(apikey, courseid, userid)
     
@@ -177,7 +177,7 @@ sequenceDiagram
     API->>API: validate_api_key(apikey)
     
     alt API Key Invalid
-        API-->>HRIS: Error: Invalid API Key
+        API-->>HRMS: Error: Invalid API Key
     else API Key Valid
         API->>API: validate_context(system)
         
@@ -200,7 +200,7 @@ sequenceDiagram
         end
         
         API-->>WS: Array of results
-        WS-->>HRIS: JSON Response
+        WS-->>HRMS: JSON Response
     end
 ```
 
@@ -211,7 +211,7 @@ sequenceDiagram
     participant Client as External Client
     participant WS as Moodle Web Service
     participant Auth as Token Validation
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant Config as Plugin Config
     
     Client->>WS: Request with wstoken
@@ -222,7 +222,7 @@ sequenceDiagram
     else Token Valid
         Auth->>API: Call web service function
         API->>API: Extract apikey parameter
-        API->>Config: get_config('local_hris', 'api_key')
+        API->>Config: get_config('local_hrms', 'api_key')
         Config-->>API: Stored API key
         
         alt API Key Mismatch
@@ -241,7 +241,7 @@ sequenceDiagram
 │              Request Flow                        │
 └─────────────────────────────────────────────────┘
 
-1. HRIS System → Moodle Web Service Endpoint
+1. HRMS System → Moodle Web Service Endpoint
    ├── Method: POST
    ├── Content-Type: application/x-www-form-urlencoded
    ├── Parameters: wstoken, wsfunction, apikey, [other params]
@@ -253,7 +253,7 @@ sequenceDiagram
    ├── Verify function exists
    └── Route to external function
 
-3. local_hris External API
+3. local_hrms External API
    ├── Validate API key (custom security)
    ├── Validate parameters (type checking)
    ├── Validate context (system context)
@@ -272,7 +272,7 @@ sequenceDiagram
    └── Build response array
 
 6. Response Flow
-   └── JSON/XML Response → HRIS System
+   └── JSON/XML Response → HRMS System
 ```
 
 ### Security Model
@@ -324,13 +324,13 @@ Layer 5: Parameter Validation
 
 | Function | Type | Parameters | Purpose |
 |----------|------|------------|---------|
-| `local_hris_get_active_courses` | Read | apikey | Get all visible courses |
-| `local_hris_get_course_participants` | Read | apikey, courseid | Get enrolled participants |
-| `local_hris_get_course_results` | Read | apikey, courseid, userid | Get learning results with scores |
-| `local_hris_get_all_course_results` | Read | apikey, courseid | Get results with questionnaire scores |
+| `local_hrms_get_active_courses` | Read | apikey | Get all visible courses |
+| `local_hrms_get_course_participants` | Read | apikey, courseid | Get enrolled participants |
+| `local_hrms_get_course_results` | Read | apikey, courseid, userid | Get learning results with scores |
+| `local_hrms_get_all_course_results` | Read | apikey, courseid | Get results with questionnaire scores |
 
 ### 1. Get Active Courses
-**Function**: `local_hris_get_active_courses`
+**Function**: `local_hrms_get_active_courses`
 
 Returns list of all visible/active courses in the system.
 
@@ -344,7 +344,7 @@ Returns list of all visible/active courses in the system.
 - `visible`: Course visibility flag
 
 ### 2. Get Course Participants
-**Function**: `local_hris_get_course_participants`
+**Function**: `local_hrms_get_course_participants`
 
 Get enrolled participants in courses.
 
@@ -363,7 +363,7 @@ Get enrolled participants in courses.
 - `enrollment_date`: Enrollment timestamp
 
 ### 3. Get Course Results
-**Function**: `local_hris_get_course_results`
+**Function**: `local_hrms_get_course_results`
 
 Comprehensive learning results with assessment scores.
 
@@ -387,7 +387,7 @@ Comprehensive learning results with assessment scores.
 - `is_completed`: Completion status (1 = completed, 0 = not completed)
 
 ### 4. Get All Course Results (with Questionnaire Scores)
-**Function**: `local_hris_get_all_course_results`
+**Function**: `local_hrms_get_all_course_results`
 
 Aggregated learning results including questionnaire scores per user and course.
 
@@ -550,7 +550,7 @@ JOIN {customfield_data} cfd ON cfd.instanceid = cm.id AND cfd.value = '3'
 ```
 
 #### Questionnaire Score Calculation
-Questionnaire scores are included only in `local_hris_get_all_course_results`.
+Questionnaire scores are included only in `local_hrms_get_all_course_results`.
 
 **Logic Summary**:
 - Looks for a visible questionnaire module in the course.
@@ -572,8 +572,8 @@ Questionnaire scores are included only in `local_hris_get_all_course_results`.
 
 ### Method 1: Download from GitHub
 
-1. Download the latest release from [Releases page](https://github.com/toosa/moodle-hris/releases)
-2. Extract and upload the `hris` folder to `/local/` directory in your Moodle installation
+1. Download the latest release from [Releases page](https://github.com/toosa/moodle-hrms/releases)
+2. Extract and upload the `hrms` folder to `/local/` directory in your Moodle installation
 3. Visit Site Administration > Notifications to install the plugin
 4. Or run: `php admin/cli/upgrade.php --non-interactive`
 
@@ -581,8 +581,8 @@ Questionnaire scores are included only in `local_hris_get_all_course_results`.
 
 ```bash
 cd /path/to/your/moodle/local/
-git clone https://github.com/toosa/moodle-hris.git hris
-cd hris
+git clone https://github.com/toosa/moodle-hrms.git hrms
+cd hrms
 php ../../admin/cli/upgrade.php --non-interactive
 ```
 
@@ -596,24 +596,24 @@ php ../../admin/cli/upgrade.php --non-interactive
 1. Go to **Site Administration → Plugins → Web services → Manage protocols**
 2. Enable **REST protocol**
 
-### 3. Configure HRIS Plugin
-1. Go to **Site Administration → Plugins → Local plugins → HRIS Integration**
-2. Enable **HRIS API**
+### 3. Configure HRMS Plugin
+1. Go to **Site Administration → Plugins → Local plugins → HRMS Integration**
+2. Enable **HRMS API**
 3. Set a secure **API Key** (this will be required for all API calls)
 
 ### 4. Create External Service
 1. Go to **Site Administration → Plugins → Web services → External services**
-2. Add new service or use the pre-installed "HRIS Integration Service"
+2. Add new service or use the pre-installed "HRMS Integration Service"
 3. Add these functions:
-   - `local_hris_get_active_courses`
-   - `local_hris_get_course_participants` 
-   - `local_hris_get_course_results`
-    - `local_hris_get_all_course_results`
+   - `local_hrms_get_active_courses`
+   - `local_hrms_get_course_participants` 
+   - `local_hrms_get_course_results`
+    - `local_hrms_get_all_course_results`
 
 ### 5. Create Web Service User & Token
 1. Create a dedicated user for API access
 2. Go to **Site Administration → Plugins → Web services → Manage tokens**  
-3. Create token for the HRIS service and user
+3. Create token for the HRMS service and user
 
 ## 🔧 API Usage
 
@@ -658,7 +658,7 @@ No additional parameters required.
 ### Authentication
 All API calls require:
 - `wstoken`: Web service token
-- `apikey`: HRIS API key (configured in plugin settings)
+- `apikey`: HRMS API key (configured in plugin settings)
 
 ### Sample Request (cURL)
 
@@ -667,7 +667,7 @@ All API calls require:
 curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "wstoken=YOUR_WS_TOKEN" \
-  -d "wsfunction=local_hris_get_active_courses" \
+  -d "wsfunction=local_hrms_get_active_courses" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY"
 ```
@@ -677,7 +677,7 @@ curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
 curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "wstoken=YOUR_WS_TOKEN" \
-  -d "wsfunction=local_hris_get_course_participants" \
+  -d "wsfunction=local_hrms_get_course_participants" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY" \
   -d "courseid=5"
@@ -688,7 +688,7 @@ curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
 curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "wstoken=YOUR_WS_TOKEN" \
-  -d "wsfunction=local_hris_get_course_results" \
+  -d "wsfunction=local_hrms_get_course_results" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY" \
   -d "courseid=0" \
@@ -700,7 +700,7 @@ curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
 curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "wstoken=YOUR_WS_TOKEN" \
-  -d "wsfunction=local_hris_get_course_results" \
+  -d "wsfunction=local_hrms_get_course_results" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY" \
   -d "courseid=5" \
@@ -712,7 +712,7 @@ curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
 curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "wstoken=YOUR_WS_TOKEN" \
-  -d "wsfunction=local_hris_get_all_course_results" \
+  -d "wsfunction=local_hrms_get_all_course_results" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY" \
   -d "courseid=0"
@@ -828,29 +828,29 @@ curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
 
 ## 🧩 Contoh Integrasi CodeIgniter 3 (CI3)
 
-Berikut contoh sederhana aplikasi CI3 untuk mengakses API HRIS Moodle.
+Berikut contoh sederhana aplikasi CI3 untuk mengakses API HRMS Moodle.
 
 ### 1. Konfigurasi
-Tambahkan konfigurasi di `application/config/hris.php`:
+Tambahkan konfigurasi di `application/config/hrms.php`:
 
 ```php
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-$config['hris_base_url'] = 'https://yourmoodle.com/webservice/rest/server.php';
-$config['hris_ws_token'] = 'YOUR_WS_TOKEN';
-$config['hris_api_key'] = 'YOUR_API_KEY';
-$config['hris_format'] = 'json';
+$config['hrms_base_url'] = 'https://yourmoodle.com/webservice/rest/server.php';
+$config['hrms_ws_token'] = 'YOUR_WS_TOKEN';
+$config['hrms_api_key'] = 'YOUR_API_KEY';
+$config['hrms_format'] = 'json';
 ```
 
 ### 2. Library Client Sederhana
-Buat `application/libraries/Hris_client.php`:
+Buat `application/libraries/Hrms_client.php`:
 
 ```php
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Hris_client {
+class Hrms_client {
 
   protected $CI;
   protected $base_url;
@@ -860,13 +860,13 @@ class Hris_client {
 
   public function __construct() {
     $this->CI =& get_instance();
-    $this->CI->load->config('hris');
+    $this->CI->load->config('hrms');
     $this->CI->load->library('curl');
 
-    $this->base_url = $this->CI->config->item('hris_base_url');
-    $this->token = $this->CI->config->item('hris_ws_token');
-    $this->api_key = $this->CI->config->item('hris_api_key');
-    $this->format = $this->CI->config->item('hris_format');
+    $this->base_url = $this->CI->config->item('hrms_base_url');
+    $this->token = $this->CI->config->item('hrms_ws_token');
+    $this->api_key = $this->CI->config->item('hrms_api_key');
+    $this->format = $this->CI->config->item('hrms_format');
   }
 
   protected function call_api($function, $params = []) {
@@ -882,24 +882,24 @@ class Hris_client {
   }
 
   public function get_active_courses() {
-    return $this->call_api('local_hris_get_active_courses');
+    return $this->call_api('local_hrms_get_active_courses');
   }
 
   public function get_course_participants($courseid = 0) {
-    return $this->call_api('local_hris_get_course_participants', [
+    return $this->call_api('local_hrms_get_course_participants', [
       'courseid' => (int)$courseid
     ]);
   }
 
   public function get_course_results($courseid = 0, $userid = 0) {
-    return $this->call_api('local_hris_get_course_results', [
+    return $this->call_api('local_hrms_get_course_results', [
       'courseid' => (int)$courseid,
       'userid' => (int)$userid
     ]);
   }
 
   public function get_all_course_results($courseid = 0) {
-    return $this->call_api('local_hris_get_all_course_results', [
+    return $this->call_api('local_hrms_get_all_course_results', [
       'courseid' => (int)$courseid
     ]);
   }
@@ -907,42 +907,42 @@ class Hris_client {
 ```
 
 ### 3. Controller Contoh
-Buat `application/controllers/Hris_demo.php`:
+Buat `application/controllers/Hrms_demo.php`:
 
 ```php
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Hris_demo extends CI_Controller {
+class Hrms_demo extends CI_Controller {
 
   public function __construct() {
     parent::__construct();
-    $this->load->library('Hris_client');
+    $this->load->library('Hrms_client');
   }
 
   public function courses() {
-    $data = $this->hris_client->get_active_courses();
+    $data = $this->hrms_client->get_active_courses();
     $this->output
       ->set_content_type('application/json')
       ->set_output(json_encode($data));
   }
 
   public function participants($courseid = 0) {
-    $data = $this->hris_client->get_course_participants($courseid);
+    $data = $this->hrms_client->get_course_participants($courseid);
     $this->output
       ->set_content_type('application/json')
       ->set_output(json_encode($data));
   }
 
   public function results($courseid = 0, $userid = 0) {
-    $data = $this->hris_client->get_course_results($courseid, $userid);
+    $data = $this->hrms_client->get_course_results($courseid, $userid);
     $this->output
       ->set_content_type('application/json')
       ->set_output(json_encode($data));
   }
 
   public function all_results($courseid = 0) {
-    $data = $this->hris_client->get_all_course_results($courseid);
+    $data = $this->hrms_client->get_all_course_results($courseid);
     $this->output
       ->set_content_type('application/json')
       ->set_output(json_encode($data));
@@ -953,10 +953,10 @@ class Hris_demo extends CI_Controller {
 ### 4. Contoh Akses Endpoint CI3
 
 ```
-GET /index.php/hris_demo/courses
-GET /index.php/hris_demo/participants/5
-GET /index.php/hris_demo/results/5/123
-GET /index.php/hris_demo/all_results/0
+GET /index.php/hrms_demo/courses
+GET /index.php/hrms_demo/participants/5
+GET /index.php/hrms_demo/results/5/123
+GET /index.php/hrms_demo/all_results/0
 ```
 
 > Catatan: Contoh di atas memakai library `curl` bawaan CI3. Jika belum tersedia, aktifkan atau tambahkan library cURL sesuai standar CI3.
@@ -967,7 +967,7 @@ GET /index.php/hris_demo/all_results/0
 
 Access the built-in API testing interface:
 ```
-https://yourmoodle.com/local/hris/test_api.php
+https://yourmoodle.com/local/hrms/test_api.php
 ```
 
 This page provides:
@@ -985,7 +985,7 @@ This page provides:
 # Basic connection test
 curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
   -d "wstoken=YOUR_TOKEN" \
-  -d "wsfunction=local_hris_get_active_courses" \
+  -d "wsfunction=local_hrms_get_active_courses" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY"
 ```
@@ -997,7 +997,7 @@ Expected: JSON array of courses or error message
 # Test with wrong API key
 curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
   -d "wstoken=YOUR_TOKEN" \
-  -d "wsfunction=local_hris_get_active_courses" \
+  -d "wsfunction=local_hrms_get_active_courses" \
   -d "moodlewsrestformat=json" \
   -d "apikey=WRONG_KEY"
 ```
@@ -1009,7 +1009,7 @@ Expected: Error message "Invalid API key"
 # Test course-specific participants
 curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
   -d "wstoken=YOUR_TOKEN" \
-  -d "wsfunction=local_hris_get_course_participants" \
+  -d "wsfunction=local_hrms_get_course_participants" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY" \
   -d "courseid=5"
@@ -1021,7 +1021,7 @@ Expected: Only participants from course ID 5
 
 - [ ] Web services enabled in Moodle
 - [ ] REST protocol enabled
-- [ ] HRIS service created and enabled
+- [ ] HRMS service created and enabled
 - [ ] Web service token generated
 - [ ] API key configured in plugin settings
 - [ ] Test user has appropriate permissions
@@ -1045,7 +1045,7 @@ Expected: Only participants from course ID 5
 ## 📁 File Structure
 
 ```
-local/hris/
+local/hrms/
 ├── 📄 version.php              # Plugin version and metadata
 │                               # - Version number
 │                               # - Required Moodle version
@@ -1080,13 +1080,13 @@ local/hris/
 │
 ├── 🌐 lang/
 │   ├── 🇺🇸 en/
-│   │   └── local_hris.php      # English language strings
+│   │   └── local_hrms.php      # English language strings
 │   │                           # - Plugin name & description
 │   │                           # - Setting labels
 │   │                           # - Error messages
 │   │
 │   └── 🇮🇩 id/
-│       └── local_hris.php      # Indonesian language strings
+│       └── local_hrms.php      # Indonesian language strings
 │                               # - Terjemahan Bahasa Indonesia
 │
 └── 📖 README.md                # This comprehensive documentation
@@ -1100,7 +1100,7 @@ local/hris/
 
 #### external.php Structure
 ```php
-class local_hris_external extends external_api {
+class local_hrms_external extends external_api {
     
     // Pattern for each function:
     // 1. {function}_parameters()     - Define input parameters
@@ -1118,10 +1118,10 @@ class local_hris_external extends external_api {
 ```php
 // Function definitions
 $functions = [
-    'local_hris_{function_name}' => [
-        'classname'   => 'local_hris_external',
+    'local_hrms_{function_name}' => [
+        'classname'   => 'local_hrms_external',
         'methodname'  => '{function_name}',
-        'classpath'   => 'local/hris/classes/external.php',
+        'classpath'   => 'local/hrms/classes/external.php',
         'description' => 'Function description',
         'type'        => 'read',  // or 'write'
         'ajax'        => true,
@@ -1131,10 +1131,10 @@ $functions = [
 
 // Service definition
 $services = [
-    'HRIS Integration Service' => [
+    'HRMS Integration Service' => [
         'functions' => [...],
         'enabled' => 1,
-        'shortname' => 'hris_service',
+        'shortname' => 'hrms_service',
     ]
 ];
 ```
@@ -1183,7 +1183,7 @@ $services = [
    - Regenerate tokens for compromised accounts
 
 3. **Implement IP Whitelisting** (Moodle configuration)
-   - Restrict access to known HRIS server IPs
+   - Restrict access to known HRMS server IPs
    - Configure at web server level (Apache/Nginx)
 
 4. **Monitor API Usage**
@@ -1218,7 +1218,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 🐛 Bug Reports & Feature Requests
 
-Please use the [GitHub Issues](https://github.com/toosa/moodle-hris/issues) page to report bugs or request features.
+Please use the [GitHub Issues](https://github.com/toosa/moodle-hrms/issues) page to report bugs or request features.
 
 ### Reporting Bugs
 
@@ -1243,22 +1243,22 @@ When requesting a feature:
 ## 📞 Support
 
 For help and questions:
-- 📧 Create an [Issue](https://github.com/toosa/moodle-hris/issues)
-- 💬 [Discussions](https://github.com/toosa/moodle-hris/discussions)
-- 📖 Check the [Wiki](https://github.com/toosa/moodle-hris/wiki)
+- 📧 Create an [Issue](https://github.com/toosa/moodle-hrms/issues)
+- 💬 [Discussions](https://github.com/toosa/moodle-hrms/discussions)
+- 📖 Check the [Wiki](https://github.com/toosa/moodle-hrms/wiki)
 
 ### Troubleshooting Common Issues
 
 #### Issue 1: "Invalid API Key" Error
 **Solution**: 
-1. Check API key in Site Administration → Plugins → Local plugins → HRIS Integration
+1. Check API key in Site Administration → Plugins → Local plugins → HRMS Integration
 2. Ensure API key matches exactly (no extra spaces)
 3. Verify API is enabled in settings
 
 #### Issue 2: "Access Exception" Error
 **Solution**:
 1. Check web service token is valid
-2. Verify HRIS service is enabled
+2. Verify HRMS service is enabled
 3. Ensure user has appropriate capabilities
 4. Check token hasn't expired
 
@@ -1334,4 +1334,4 @@ This project is licensed under the [GNU GPL v3](LICENSE) - see the LICENSE file 
 
 ---
 
-<p align="center">Made with ❤️ for HRIS integration with Moodle</p>
+<p align="center">Made with ❤️ for HRMS integration with Moodle</p>

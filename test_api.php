@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Test API endpoint for HRIS Integration
+ * Test API endpoint for HRMS Integration
  *
- * @package    local_hris
+ * @package    local_hrms
  * @copyright  2025 Prihantoosa <pht854@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -27,11 +27,11 @@ require_once('../../config.php');
 global $CFG, $PAGE, $OUTPUT;
 
 // Set up the page
-$PAGE->set_url('/local/hris/test_api.php');
+$PAGE->set_url('/local/hrms/test_api.php');
 $PAGE->set_context(context_system::instance());
 $PAGE->set_pagelayout('standard');
-$PAGE->set_title('HRIS API Test');
-$PAGE->set_heading('HRIS API Test');
+$PAGE->set_title('HRMS API Test');
+$PAGE->set_heading('HRMS API Test');
 
 // Check if user is admin
 require_login();
@@ -41,7 +41,7 @@ echo $OUTPUT->header();
 
 ?>
 <div class="container mt-4">
-    <h2>HRIS API Testing Interface</h2>
+    <h2>HRMS API Testing Interface</h2>
     
     <div class="alert alert-info">
         <strong>API Base URL:</strong> <?php echo $CFG->wwwroot; ?>/webservice/rest/server.php
@@ -59,13 +59,13 @@ echo $OUTPUT->header();
                             '<span class="badge badge-success">Yes</span>' : 
                             '<span class="badge badge-danger">No</span>'; ?>
                     </p>
-                    <p><strong>HRIS API Enabled:</strong> 
-                        <?php echo get_config('local_hris', 'api_enabled') ? 
+                    <p><strong>HRMS API Enabled:</strong> 
+                        <?php echo get_config('local_hrms', 'api_enabled') ? 
                             '<span class="badge badge-success">Yes</span>' : 
                             '<span class="badge badge-danger">No</span>'; ?>
                     </p>
                     <p><strong>API Key Set:</strong> 
-                        <?php echo !empty(get_config('local_hris', 'api_key')) ? 
+                        <?php echo !empty(get_config('local_hrms', 'api_key')) ? 
                             '<span class="badge badge-success">Yes</span>' : 
                             '<span class="badge badge-danger">No</span>'; ?>
                     </p>
@@ -80,9 +80,9 @@ echo $OUTPUT->header();
                 </div>
                 <div class="card-body">
                     <ul class="list-group list-group-flush">
-                        <li class="list-group-item"><code>local_hris_get_active_courses</code></li>
-                        <li class="list-group-item"><code>local_hris_get_course_participants</code></li>
-                        <li class="list-group-item"><code>local_hris_get_course_results</code></li>
+                        <li class="list-group-item"><code>local_hrms_get_active_courses</code></li>
+                        <li class="list-group-item"><code>local_hrms_get_course_participants</code></li>
+                        <li class="list-group-item"><code>local_hrms_get_course_results</code></li>
                     </ul>
                 </div>
             </div>
@@ -100,7 +100,7 @@ echo $OUTPUT->header();
 Content-Type: application/x-www-form-urlencoded
 
 wstoken=YOUR_WS_TOKEN&
-wsfunction=local_hris_get_active_courses&
+wsfunction=local_hrms_get_active_courses&
 moodlewsrestformat=json&
 apikey=YOUR_API_KEY</code></pre>
 
@@ -109,7 +109,7 @@ apikey=YOUR_API_KEY</code></pre>
 Content-Type: application/x-www-form-urlencoded
 
 wstoken=YOUR_WS_TOKEN&
-wsfunction=local_hris_get_course_participants&
+wsfunction=local_hrms_get_course_participants&
 moodlewsrestformat=json&
 apikey=YOUR_API_KEY</code></pre>
 
@@ -118,7 +118,7 @@ apikey=YOUR_API_KEY</code></pre>
 Content-Type: application/x-www-form-urlencoded
 
 wstoken=YOUR_WS_TOKEN&
-wsfunction=local_hris_get_course_participants&
+wsfunction=local_hrms_get_course_participants&
 moodlewsrestformat=json&
 apikey=YOUR_API_KEY&
 courseid=COURSE_ID</code></pre>
@@ -128,7 +128,7 @@ courseid=COURSE_ID</code></pre>
 Content-Type: application/x-www-form-urlencoded
 
 wstoken=YOUR_WS_TOKEN&
-wsfunction=local_hris_get_course_results&
+wsfunction=local_hrms_get_course_results&
 moodlewsrestformat=json&
 apikey=YOUR_API_KEY&
 courseid=COURSE_ID&
@@ -148,9 +148,9 @@ userid=USER_ID</code></pre>
                     <li>Enable protocols: <strong>Site administration > Plugins > Web services > Manage protocols > Enable REST</strong></li>
                     <li>Create a web service user or use existing user</li>
                     <li>Create external service: <strong>Site administration > Plugins > Web services > External services</strong></li>
-                    <li>Add functions to the service: <code>local_hris_get_active_courses</code>, <code>local_hris_get_course_participants</code>, <code>local_hris_get_course_results</code></li>
+                    <li>Add functions to the service: <code>local_hrms_get_active_courses</code>, <code>local_hrms_get_course_participants</code>, <code>local_hrms_get_course_results</code></li>
                     <li>Create token for the service user</li>
-                    <li>Set API key in plugin settings: <strong>Site administration > Plugins > Local plugins > HRIS Integration</strong></li>
+                    <li>Set API key in plugin settings: <strong>Site administration > Plugins > Local plugins > HRMS Integration</strong></li>
                 </ol>
             </div>
         </div>

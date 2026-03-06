@@ -15,16 +15,16 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version information for HRIS Integration
+ * Version information for HRMS Integration
  *
- * @package    local_hris
+ * @package    local_hrms
  * @copyright  2025 Prihantoosa <pht854@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component    = 'local_hris';
+$plugin->component    = 'local_hrms';
 $plugin->release      = '1.3.4';
 $plugin->version      = 2026020303;
 $plugin->requires     = 2024100700;

@@ -1,11 +1,11 @@
-# HRIS Integration - Testing Guide
+# HRMS Integration - Testing Guide
 
 ## Test Script
 
 Run the test script to verify all API functions work correctly:
 
 ```bash
-php local/hris/tests/test_api.php
+php local/hrms/tests/test_api.php
 ```
 
 ## Manual Testing via Web Service
@@ -20,7 +20,7 @@ php local/hris/tests/test_api.php
 ```bash
 curl -X POST "https://your-moodle-site/webservice/rest/server.php" \
   -d "wstoken=YOUR_TOKEN" \
-  -d "wsfunction=local_hris_get_active_courses" \
+  -d "wsfunction=local_hrms_get_active_courses" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY"
 ```
@@ -30,7 +30,7 @@ curl -X POST "https://your-moodle-site/webservice/rest/server.php" \
 # All courses
 curl -X POST "https://your-moodle-site/webservice/rest/server.php" \
   -d "wstoken=YOUR_TOKEN" \
-  -d "wsfunction=local_hris_get_course_participants" \
+  -d "wsfunction=local_hrms_get_course_participants" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY" \
   -d "courseid=0"
@@ -38,7 +38,7 @@ curl -X POST "https://your-moodle-site/webservice/rest/server.php" \
 # Specific course
 curl -X POST "https://your-moodle-site/webservice/rest/server.php" \
   -d "wstoken=YOUR_TOKEN" \
-  -d "wsfunction=local_hris_get_course_participants" \
+  -d "wsfunction=local_hrms_get_course_participants" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY" \
   -d "courseid=2"
@@ -49,7 +49,7 @@ curl -X POST "https://your-moodle-site/webservice/rest/server.php" \
 # All courses, all users
 curl -X POST "https://your-moodle-site/webservice/rest/server.php" \
   -d "wstoken=YOUR_TOKEN" \
-  -d "wsfunction=local_hris_get_course_results" \
+  -d "wsfunction=local_hrms_get_course_results" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY" \
   -d "courseid=0" \
@@ -58,7 +58,7 @@ curl -X POST "https://your-moodle-site/webservice/rest/server.php" \
 # Specific course
 curl -X POST "https://your-moodle-site/webservice/rest/server.php" \
   -d "wstoken=YOUR_TOKEN" \
-  -d "wsfunction=local_hris_get_course_results" \
+  -d "wsfunction=local_hrms_get_course_results" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY" \
   -d "courseid=2" \
@@ -67,7 +67,7 @@ curl -X POST "https://your-moodle-site/webservice/rest/server.php" \
 # Specific user
 curl -X POST "https://your-moodle-site/webservice/rest/server.php" \
   -d "wstoken=YOUR_TOKEN" \
-  -d "wsfunction=local_hris_get_course_results" \
+  -d "wsfunction=local_hrms_get_course_results" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY" \
   -d "courseid=0" \

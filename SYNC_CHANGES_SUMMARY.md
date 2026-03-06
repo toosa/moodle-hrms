@@ -90,7 +90,7 @@
 ## Files Modified
 
 ```
-local/hris/
+local/hrms/
 ├── README.md                 [3 major updates]
 ├── DESIGN.md                 [4 major updates]
 ├── DIAGRAMS.md               [2 major updates]

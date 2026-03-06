@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * HRIS external services and functions
+ * HRMS external services and functions
  *
- * @package    local_hris
+ * @package    local_hrms
  * @copyright  2025 Prihantoosa <pht854@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -26,46 +26,46 @@ defined('MOODLE_INTERNAL') || die();
 
 // Define the web service functions to install.
 $functions = [
-    'local_hris_get_active_courses' => [
-        'classname'   => 'local_hris_external',
+    'local_hrms_get_active_courses' => [
+        'classname'   => 'local_hrms_external',
         'methodname'  => 'get_active_courses',
-        'classpath'   => 'local/hris/classes/external.php',
+        'classpath'   => 'local/hrms/classes/external.php',
         'description' => 'Get list of active courses',
         'type'        => 'read',
         'ajax'        => true,
         'capabilities' => '',
     ],
-    'local_hris_get_all_active_courses' => [
-        'classname'   => 'local_hris_external',
+    'local_hrms_get_all_active_courses' => [
+        'classname'   => 'local_hrms_external',
         'methodname'  => 'get_active_courses',
-        'classpath'   => 'local/hris/classes/external.php',
+        'classpath'   => 'local/hrms/classes/external.php',
         'description' => 'Get list of active courses (alias)',
         'type'        => 'read',
         'ajax'        => true,
         'capabilities' => '',
     ],
-    'local_hris_get_course_participants' => [
-        'classname'   => 'local_hris_external',
+    'local_hrms_get_course_participants' => [
+        'classname'   => 'local_hrms_external',
         'methodname'  => 'get_course_participants', 
-        'classpath'   => 'local/hris/classes/external.php',
+        'classpath'   => 'local/hrms/classes/external.php',
         'description' => 'Get participants enrolled in courses',
         'type'        => 'read',
         'ajax'        => true,
         'capabilities' => '',
     ],
-    'local_hris_get_course_results' => [
-        'classname'   => 'local_hris_external',
+    'local_hrms_get_course_results' => [
+        'classname'   => 'local_hrms_external',
         'methodname'  => 'get_course_results',
-        'classpath'   => 'local/hris/classes/external.php', 
+        'classpath'   => 'local/hrms/classes/external.php', 
         'description' => 'Get course results with pre-test and post-test scores',
         'type'        => 'read',
         'ajax'        => true,
         'capabilities' => '',
     ],
-    'local_hris_get_all_course_results' => [
-        'classname'   => 'local_hris_external',
+    'local_hrms_get_all_course_results' => [
+        'classname'   => 'local_hrms_external',
         'methodname'  => 'get_all_course_results',
-        'classpath'   => 'local/hris/classes/external.php',
+        'classpath'   => 'local/hrms/classes/external.php',
         'description' => 'Get all course results with questionnaire scores',
         'type'        => 'read',
         'ajax'        => true,
@@ -75,17 +75,17 @@ $functions = [
 
 // Define services to install as pre-build services.
 $services = [
-    'HRIS Integration Service' => [
+    'HRMS Integration Service' => [
         'functions' => [
-            'local_hris_get_active_courses',
-            'local_hris_get_all_active_courses',
-            'local_hris_get_course_participants',
-            'local_hris_get_course_results',
-            'local_hris_get_all_course_results'
+            'local_hrms_get_active_courses',
+            'local_hrms_get_all_active_courses',
+            'local_hrms_get_course_participants',
+            'local_hrms_get_course_results',
+            'local_hrms_get_all_course_results'
         ],
         'restrictedusers' => 0,
         'enabled' => 1,
-        'shortname' => 'hris_service',
+        'shortname' => 'hrms_service',
         'downloadfiles' => 0,
         'uploadfiles' => 0
     ]

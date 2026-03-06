@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * External API for HRIS Integration
+ * External API for HRMS Integration
  *
- * @package    local_hris
+ * @package    local_hrms
  * @copyright  2025 Prihantoosa <pht854@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -27,9 +27,9 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/externallib.php');
 
 /**
- * HRIS external functions
+ * HRMS external functions
  */
-class local_hris_external extends external_api {
+class local_hrms_external extends external_api {
 
     /**
      * Returns description of method parameters
@@ -56,7 +56,7 @@ class local_hris_external extends external_api {
 
         // Validate API key
         if (!self::validate_api_key($params['apikey'])) {
-            throw new moodle_exception('invalidapikey', 'local_hris');
+            throw new moodle_exception('invalidapikey', 'local_hrms');
         }
 
         // Get context
@@ -134,7 +134,7 @@ class local_hris_external extends external_api {
 
         // Validate API key
         if (!self::validate_api_key($params['apikey'])) {
-            throw new moodle_exception('invalidapikey', 'local_hris');
+            throw new moodle_exception('invalidapikey', 'local_hrms');
         }
 
         // Get context
@@ -239,7 +239,7 @@ class local_hris_external extends external_api {
 
         // Validate API key
         if (!self::validate_api_key($params['apikey'])) {
-            throw new moodle_exception('invalidapikey', 'local_hris');
+            throw new moodle_exception('invalidapikey', 'local_hrms');
         }
 
         // Get context
@@ -534,7 +534,7 @@ class local_hris_external extends external_api {
      * @return bool True if valid, false otherwise
      */
     private static function validate_api_key($apikey) {
-        $stored_key = get_config('local_hris', 'api_key');
+        $stored_key = get_config('local_hrms', 'api_key');
         return !empty($stored_key) && $apikey === $stored_key;
     }
     
@@ -567,7 +567,7 @@ class local_hris_external extends external_api {
         ]);
 
         if (!self::validate_api_key($params['apikey'])) {
-            throw new moodle_exception('invalidapikey', 'local_hris');
+            throw new moodle_exception('invalidapikey', 'local_hrms');
         }
 
         $context = context_system::instance();

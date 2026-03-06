@@ -1,4 +1,4 @@
-# HRIS Plugin - Design Documentation
+# HRMS Plugin - Design Documentation
 
 ## Table of Contents
 1. [System Architecture](#system-architecture)
@@ -17,7 +17,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    External Integration                      │
-│                      (HRIS System)                           │
+│                      (HRMS System)                           │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          │ HTTPS/REST
@@ -44,10 +44,10 @@
                         │
                         ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                 local_hris Plugin Layer                      │
+│                 local_hrms Plugin Layer                      │
 │                                                              │
 │  ┌──────────────────────────────────────────────────┐      │
-│  │  local_hris_external Class                        │      │
+│  │  local_hrms_external Class                        │      │
 │  │                                                    │      │
 │  │  1. API Key Validation                            │      │
 │  │  2. Parameter Validation                          │      │
@@ -78,7 +78,7 @@
 
 ```
 ┌──────────┐
-│  HRIS    │
+│  HRMS    │
 │ System   │
 └────┬─────┘
      │
@@ -98,7 +98,7 @@
      │ 2. Route to Function
      ▼
 ┌─────────────────┐
-│  local_hris_    │
+│  local_hrms_    │
 │  external       │──────────► Validate API Key
 └────┬────────────┘              │
      │                            │ Valid?
@@ -121,7 +121,7 @@
      │ 5. Return JSON/XML
      ▼
 ┌──────────┐
-│  HRIS    │
+│  HRMS    │
 │ System   │
 └──────────┘
 ```
@@ -143,7 +143,7 @@
                  │ extends
                  ▼
 ┌─────────────────────────────────────────────────┐
-│         local_hris_external                     │
+│         local_hrms_external                     │
 ├─────────────────────────────────────────────────┤
 │  Static Methods:                                │
 │                                                 │
@@ -192,7 +192,7 @@ public static function {function_name}($param1, $param2 = default) {
     
     // 2.2 Validate API key
     if (!self::validate_api_key($params['apikey'])) {
-        throw new moodle_exception('invalidapikey', 'local_hris');
+        throw new moodle_exception('invalidapikey', 'local_hrms');
     }
     
     // 2.3 Validate context
@@ -226,7 +226,7 @@ The plugin also includes private helper methods for complex operations:
  * Validate API key
  */
 private static function validate_api_key($apikey) {
-    $stored_key = get_config('local_hris', 'api_key');
+    $stored_key = get_config('local_hrms', 'api_key');
     return !empty($stored_key) && $apikey === $stored_key;
 }
 
@@ -302,11 +302,11 @@ private static function get_questionnaire_scores($userid, $courseid) {
 
 ```mermaid
 sequenceDiagram
-    participant Client as HRIS Client
+    participant Client as HRMS Client
     participant Server as Web Server
     participant WS as Moodle Web Service
     participant Token as Token Validator
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant DB as Moodle Database
     
     Client->>Server: HTTPS POST Request
@@ -347,7 +347,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Client
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant Validator
     participant DB as Database
     
@@ -384,7 +384,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Client
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant DB as Database
     
     Client->>API: get_course_participants(apikey, courseid)
@@ -413,7 +413,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Client
-    participant API as local_hris_external
+    participant API as local_hrms_external
     participant DB as Database
     
     Client->>API: get_course_results(apikey, courseid, userid)
@@ -445,7 +445,7 @@ sequenceDiagram
 sequenceDiagram
     participant Client
     participant WS as Web Service
-    participant API as local_hris
+    participant API as local_hrms
     
     Client->>WS: Request with invalid token
     WS->>WS: Validate token
@@ -800,7 +800,7 @@ sequenceDiagram
     participant Client
     participant WS as Web Service
     participant TokenDB as Token Storage
-    participant API as local_hris
+    participant API as local_hrms
     participant ConfigDB as Config Storage
     
     Client->>WS: Request + wstoken
@@ -816,7 +816,7 @@ sequenceDiagram
         
         WS->>API: Call function + apikey
         
-        API->>ConfigDB: get_config('local_hris', 'api_key')
+        API->>ConfigDB: get_config('local_hrms', 'api_key')
         ConfigDB-->>API: stored_key
         
         API->>API: Compare apikey === stored_key
@@ -995,7 +995,7 @@ Response with pagination:
 ```bash
 curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
   -d "wstoken=YOUR_WEBSERVICE_TOKEN" \
-  -d "wsfunction=local_hris_get_all_course_results" \
+  -d "wsfunction=local_hrms_get_all_course_results" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY" \
   -d "format=json"
@@ -1122,7 +1122,7 @@ Each choice is rated on a scale (typically 1-5), and the plugin automatically ca
 // Site Admin → Development → Debugging
 
 // Custom logging in plugin
-debugging('HRIS API: ' . $function_name . ' called', DEBUG_DEVELOPER);
+debugging('HRMS API: ' . $function_name . ' called', DEBUG_DEVELOPER);
 
 // Log to Moodle logs
 add_to_log(
@@ -1219,11 +1219,11 @@ add_to_log(
    - Separate API keys per organization
 
 ### Phase 5: Integration Ecosystem
-1. **Pre-built HRIS Connectors**
+1. **Pre-built HRMS Connectors**
    - SAP SuccessFactors connector
    - Workday integration
    - BambooHR plugin
-   - Generic HRIS adapter
+   - Generic HRMS adapter
 
 2. **Developer Tools**
    - SDK libraries (PHP, Python, Node.js, Java)
@@ -1261,7 +1261,7 @@ add_to_log(
 
 ### Glossary
 
-- **API Key**: Custom authentication token specific to HRIS plugin
+- **API Key**: Custom authentication token specific to HRMS plugin
 - **Web Service Token**: Moodle's standard token for web service access
 - **External API**: Moodle's web service function class
 - **Context**: Moodle's permission scope (system, course, user)
