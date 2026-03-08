@@ -18,7 +18,7 @@
  * Version information for HRMS Integration
  *
  * @package    local_hrms
- * @copyright  2025 Prihantoosa <pht854@gmail.com>
+ * @copyright  2025-2026 Prihantoosa <pht854@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
