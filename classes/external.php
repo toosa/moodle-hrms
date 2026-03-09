@@ -64,11 +64,17 @@ class local_hrms_external extends external_api {
         self::validate_context($context);
 
         // Get active courses (exclude site course)
-        $sql = "SELECT c.id, c.shortname, c.fullname, c.summary, c.startdate, c.enddate, c.visible
-                FROM {course} c 
+        $sql = "SELECT c.id, c.idnumber, c.shortname, c.fullname, c.summary,
+                       c.startdate, c.enddate, c.visible,
+                       cc.id as category_id, cc.name as category_name,
+                       COALESCE(cfd.value, '') as jp
+                FROM {course} c
+                JOIN {course_categories} cc ON cc.id = c.category
+                LEFT JOIN {customfield_field} cff ON cff.shortname = 'jp' AND cff.component = 'core_course'
+                LEFT JOIN {customfield_data} cfd ON cfd.instanceid = c.id AND cfd.fieldid = cff.id
                 WHERE c.id != :siteid 
                 AND c.visible = 1
-                ORDER BY c.fullname";
+                ORDER BY cc.name, c.fullname";
         
         $courses = $DB->get_records_sql($sql, ['siteid' => SITEID]);
         
@@ -76,12 +82,16 @@ class local_hrms_external extends external_api {
         foreach ($courses as $course) {
             $result[] = [
                 'id' => $course->id,
+                'idnumber' => $course->idnumber ?: '',
                 'shortname' => $course->shortname,
                 'fullname' => $course->fullname,
                 'summary' => strip_tags($course->summary),
+                'category_id' => $course->category_id,
+                'category_name' => $course->category_name,
                 'startdate' => $course->startdate,
                 'enddate' => $course->enddate,
-                'visible' => $course->visible
+                'visible' => $course->visible,
+                'jp' => $course->jp ?: ''
             ];
         }
 
@@ -96,12 +106,16 @@ class local_hrms_external extends external_api {
         return new external_multiple_structure(
             new external_single_structure([
                 'id' => new external_value(PARAM_INT, 'Course ID'),
+                'idnumber' => new external_value(PARAM_TEXT, 'Course ID number'),
                 'shortname' => new external_value(PARAM_TEXT, 'Course short name'),
                 'fullname' => new external_value(PARAM_TEXT, 'Course full name'),
                 'summary' => new external_value(PARAM_TEXT, 'Course summary'),
+                'category_id' => new external_value(PARAM_INT, 'Category ID'),
+                'category_name' => new external_value(PARAM_TEXT, 'Category name'),
                 'startdate' => new external_value(PARAM_INT, 'Course start date'),
                 'enddate' => new external_value(PARAM_INT, 'Course end date'),
-                'visible' => new external_value(PARAM_INT, 'Course visibility')
+                'visible' => new external_value(PARAM_INT, 'Course visibility'),
+                'jp' => new external_value(PARAM_TEXT, 'Course custom field JP')
             ])
         );
     }
