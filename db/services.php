@@ -62,15 +62,6 @@ $functions = [
         'ajax'        => true,
         'capabilities' => '',
     ],
-    'local_hrms_get_all_course_results' => [
-        'classname'   => 'local_hrms_external',
-        'methodname'  => 'get_all_course_results',
-        'classpath'   => 'local/hrms/classes/external.php',
-        'description' => 'Get all course results with questionnaire scores',
-        'type'        => 'read',
-        'ajax'        => true,
-        'capabilities' => '',
-    ]
 ];
 
 // Define services to install as pre-build services.
@@ -80,8 +71,7 @@ $services = [
             'local_hrms_get_active_courses',
             'local_hrms_get_all_active_courses',
             'local_hrms_get_course_participants',
-            'local_hrms_get_course_results',
-            'local_hrms_get_all_course_results'
+            'local_hrms_get_course_results'
         ],
         'restrictedusers' => 0,
         'enabled' => 1,
