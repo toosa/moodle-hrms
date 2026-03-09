@@ -70,7 +70,8 @@ class local_hrms_external extends external_api {
                        COALESCE(cfd.value, '') as jp
                 FROM {course} c
                 JOIN {course_categories} cc ON cc.id = c.category
-                LEFT JOIN {customfield_field} cff ON cff.shortname = 'jp' AND cff.component = 'core_course'
+                LEFT JOIN {customfield_category} cfc ON cfc.component = 'core_course' AND cfc.area = 'course'
+                LEFT JOIN {customfield_field} cff ON cff.shortname = 'jp' AND cff.categoryid = cfc.id
                 LEFT JOIN {customfield_data} cfd ON cfd.instanceid = c.id AND cfd.fieldid = cff.id
                 WHERE c.id != :siteid 
                 AND c.visible = 1
