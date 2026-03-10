@@ -552,5 +552,95 @@ class local_hrms_external extends external_api {
         $stored_key = get_config('local_hrms', 'api_key');
         return !empty($stored_key) && $apikey === $stored_key;
     }
-    
+
+    /**
+     * Returns description of method parameters for set_user_suspension
+     * @return external_function_parameters
+     */
+    public static function set_user_suspension_parameters() {
+        return new external_function_parameters([
+            'apikey'    => new external_value(PARAM_TEXT, 'API key for authentication'),
+            'userid'    => new external_value(PARAM_INT, 'User ID', VALUE_OPTIONAL, 0),
+            'email'     => new external_value(PARAM_EMAIL, 'User email', VALUE_OPTIONAL, ''),
+            'suspended' => new external_value(PARAM_INT, 'Suspend (1) or unsuspend (0) the user'),
+        ]);
+    }
+
+    /**
+     * Suspend or unsuspend a user by userid and/or email
+     * @param string $apikey API key
+     * @param int $userid User ID (0 = not used)
+     * @param string $email User email (empty = not used)
+     * @param int $suspended 1 = suspend, 0 = unsuspend
+     * @return array Result status
+     */
+    public static function set_user_suspension($apikey, $userid = 0, $email = '', $suspended = 1) {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . '/user/lib.php');
+
+        $params = self::validate_parameters(self::set_user_suspension_parameters(), [
+            'apikey'    => $apikey,
+            'userid'    => $userid,
+            'email'     => $email,
+            'suspended' => $suspended,
+        ]);
+
+        if (!self::validate_api_key($params['apikey'])) {
+            throw new moodle_exception('invalidapikey', 'local_hrms');
+        }
+
+        $context = context_system::instance();
+        self::validate_context($context);
+
+        // Resolve user
+        $user = null;
+        if ($params['userid'] > 0) {
+            $user = $DB->get_record('user', ['id' => $params['userid'], 'deleted' => 0]);
+        } else if (!empty($params['email'])) {
+            $user = $DB->get_record('user', ['email' => $params['email'], 'deleted' => 0]);
+        }
+
+        if (!$user) {
+            throw new moodle_exception('invaliduser', 'error');
+        }
+
+        // Prevent suspending site admins
+        if (is_siteadmin($user->id)) {
+            throw new moodle_exception('useradminodelete', 'error');
+        }
+
+        $suspendvalue = $params['suspended'] ? 1 : 0;
+
+        // Only update if the value actually changes
+        if ((int)$user->suspended !== $suspendvalue) {
+            $updateuser = (object)[
+                'id'        => $user->id,
+                'suspended' => $suspendvalue,
+            ];
+            user_update_user($updateuser, false, true);
+        }
+
+        return [
+            'success'   => 1,
+            'userid'    => (int)$user->id,
+            'email'     => $user->email,
+            'suspended' => $suspendvalue,
+            'message'   => $suspendvalue ? 'User suspended' : 'User unsuspended',
+        ];
+    }
+
+    /**
+     * Returns description of method result value for set_user_suspension
+     * @return external_description
+     */
+    public static function set_user_suspension_returns() {
+        return new external_single_structure([
+            'success'   => new external_value(PARAM_INT, 'Operation success (1)'),
+            'userid'    => new external_value(PARAM_INT, 'User ID'),
+            'email'     => new external_value(PARAM_EMAIL, 'User email'),
+            'suspended' => new external_value(PARAM_INT, 'New suspension status (1=suspended, 0=active)'),
+            'message'   => new external_value(PARAM_TEXT, 'Result message'),
+        ]);
+    }
+
 }

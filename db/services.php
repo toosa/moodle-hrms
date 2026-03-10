@@ -62,6 +62,15 @@ $functions = [
         'ajax'        => true,
         'capabilities' => '',
     ],
+    'local_hrms_set_user_suspension' => [
+        'classname'   => 'local_hrms_external',
+        'methodname'  => 'set_user_suspension',
+        'classpath'   => 'local/hrms/classes/external.php',
+        'description' => 'Suspend or unsuspend a user by userid or email',
+        'type'        => 'write',
+        'ajax'        => true,
+        'capabilities' => 'moodle/user:update',
+    ],
 ];
 
 // Define services to install as pre-build services.
@@ -71,7 +80,8 @@ $services = [
             'local_hrms_get_active_courses',
             'local_hrms_get_all_active_courses',
             'local_hrms_get_course_participants',
-            'local_hrms_get_course_results'
+            'local_hrms_get_course_results',
+            'local_hrms_set_user_suspension'
         ],
         'restrictedusers' => 0,
         'enabled' => 1,
