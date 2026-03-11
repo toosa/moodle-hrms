@@ -590,11 +590,8 @@ class local_hrms_external extends external_api {
         }
 
         $sql = "SELECT u.id, u.username, u.email, u.firstname, u.lastname,
-                       u.suspended, u.timecreated, u.lastlogin,
-                       COALESCE(uid.data, '') AS branch
+                       u.suspended, u.timecreated, u.lastlogin
                 FROM {user} u
-                LEFT JOIN {user_info_field} uif ON uif.shortname = 'branch'
-                LEFT JOIN {user_info_data} uid ON uid.userid = u.id AND uid.fieldid = uif.id
                 WHERE {$where}
                 ORDER BY u.lastname, u.firstname";
 
@@ -611,7 +608,6 @@ class local_hrms_external extends external_api {
                 'suspended'   => (int) $user->suspended,
                 'timecreated' => (int) $user->timecreated,
                 'lastlogin'   => (int) $user->lastlogin,
-                'branch'      => $user->branch ?: '',
             ];
         }
 
@@ -633,7 +629,6 @@ class local_hrms_external extends external_api {
                 'suspended'   => new external_value(PARAM_INT,   'Suspended status (1=suspended, 0=active)'),
                 'timecreated' => new external_value(PARAM_INT,   'Account creation timestamp'),
                 'lastlogin'   => new external_value(PARAM_INT,   'Last login timestamp'),
-                'branch'      => new external_value(PARAM_TEXT,  'Branch / company name'),
             ])
         );
     }
