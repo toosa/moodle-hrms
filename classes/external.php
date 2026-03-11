@@ -733,4 +733,130 @@ class local_hrms_external extends external_api {
         ]);
     }
 
+    /**
+     * Returns description of method parameters for create_course
+     * @return external_function_parameters
+     */
+    public static function create_course_parameters() {
+        return new external_function_parameters([
+            'apikey'     => new external_value(PARAM_TEXT, 'API key for authentication'),
+            'fullname'   => new external_value(PARAM_TEXT, 'Course full name'),
+            'shortname'  => new external_value(PARAM_TEXT, 'Course short name'),
+            'idnumber'   => new external_value(PARAM_TEXT, 'Course ID number', VALUE_OPTIONAL, ''),
+            'summary'    => new external_value(PARAM_RAW,  'Course summary', VALUE_OPTIONAL, ''),
+            'categoryid' => new external_value(PARAM_INT,  'Category ID', VALUE_OPTIONAL, 1),
+            'startdate'  => new external_value(PARAM_INT,  'Course start date (unix timestamp)', VALUE_OPTIONAL, 0),
+            'enddate'    => new external_value(PARAM_INT,  'Course end date (unix timestamp)', VALUE_OPTIONAL, 0),
+            'visible'    => new external_value(PARAM_INT,  'Visibility (1=visible, 0=hidden)', VALUE_OPTIONAL, 0),
+            'jp'         => new external_value(PARAM_INT,  'JP custom field value', VALUE_OPTIONAL, 1),
+        ]);
+    }
+
+    /**
+     * Create a new course
+     * @param string $apikey
+     * @param string $fullname
+     * @param string $shortname
+     * @param string $idnumber
+     * @param string $summary
+     * @param int    $categoryid
+     * @param int    $startdate
+     * @param int    $enddate
+     * @param int    $visible
+     * @param int    $jp
+     * @return array Created course info
+     */
+    public static function create_course(
+        $apikey, $fullname, $shortname, $idnumber = '', $summary = '',
+        $categoryid = 1, $startdate = 0, $enddate = 0, $visible = 0, $jp = 1
+    ) {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/course/lib.php');
+
+        $params = self::validate_parameters(self::create_course_parameters(), [
+            'apikey'     => $apikey,
+            'fullname'   => $fullname,
+            'shortname'  => $shortname,
+            'idnumber'   => $idnumber,
+            'summary'    => $summary,
+            'categoryid' => $categoryid,
+            'startdate'  => $startdate,
+            'enddate'    => $enddate,
+            'visible'    => $visible,
+            'jp'         => $jp,
+        ]);
+
+        if (!self::validate_api_key($params['apikey'])) {
+            throw new moodle_exception('invalidapikey', 'local_hrms');
+        }
+
+        $context = context_system::instance();
+        self::validate_context($context);
+
+        // Verify category exists.
+        core_course_category::get($params['categoryid'], MUST_EXIST);
+
+        // Check shortname uniqueness.
+        if ($DB->record_exists('course', ['shortname' => $params['shortname']])) {
+            throw new moodle_exception('shortnametaken', 'error', '', $params['shortname']);
+        }
+
+        $coursedata = (object) [
+            'fullname'      => $params['fullname'],
+            'shortname'     => $params['shortname'],
+            'idnumber'      => $params['idnumber'],
+            'summary'       => $params['summary'],
+            'summaryformat' => FORMAT_HTML,
+            'category'      => $params['categoryid'],
+            'startdate'     => $params['startdate'] ?: time(),
+            'enddate'       => $params['enddate'],
+            'visible'       => $params['visible'] ? 1 : 0,
+            'format'        => 'topics',
+        ];
+
+        $course = create_course($coursedata);
+
+        // Set JP custom field.
+        $handler = \core_customfield\handler::get_handler('core_course', 'course');
+        $fieldsdata = $handler->get_instance_data($course->id, true);
+        foreach ($fieldsdata as $fielddata) {
+            if ($fielddata->get_field()->get('shortname') === 'jp') {
+                $fielddata->set('value', $params['jp']);
+                $fielddata->set('valueformat', FORMAT_PLAIN);
+                $fielddata->save();
+                break;
+            }
+        }
+
+        return [
+            'id'         => (int) $course->id,
+            'shortname'  => $course->shortname,
+            'fullname'   => $course->fullname,
+            'idnumber'   => $course->idnumber ?: '',
+            'categoryid' => (int) $course->category,
+            'startdate'  => (int) $course->startdate,
+            'enddate'    => (int) $course->enddate,
+            'visible'    => (int) $course->visible,
+            'jp'         => $params['jp'],
+        ];
+    }
+
+    /**
+     * Returns description of method result value for create_course
+     * @return external_description
+     */
+    public static function create_course_returns() {
+        return new external_single_structure([
+            'id'         => new external_value(PARAM_INT,  'New course ID'),
+            'shortname'  => new external_value(PARAM_TEXT, 'Course short name'),
+            'fullname'   => new external_value(PARAM_TEXT, 'Course full name'),
+            'idnumber'   => new external_value(PARAM_TEXT, 'Course ID number'),
+            'categoryid' => new external_value(PARAM_INT,  'Category ID'),
+            'startdate'  => new external_value(PARAM_INT,  'Start date'),
+            'enddate'    => new external_value(PARAM_INT,  'End date'),
+            'visible'    => new external_value(PARAM_INT,  'Visibility (1=visible, 0=hidden)'),
+            'jp'         => new external_value(PARAM_INT,  'JP custom field value'),
+        ]);
+    }
+
 }
