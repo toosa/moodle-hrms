@@ -544,6 +544,101 @@ class local_hrms_external extends external_api {
     }
 
     /**
+     * Returns description of method parameters for get_users
+     * @return external_function_parameters
+     */
+    public static function get_users_parameters() {
+        return new external_function_parameters([
+            'apikey' => new external_value(PARAM_TEXT, 'API key for authentication'),
+            'status' => new external_value(PARAM_ALPHA, 'Filter by status: all, active, suspended', VALUE_OPTIONAL, 'all'),
+        ]);
+    }
+
+    /**
+     * Get list of users with optional suspension filter
+     * @param string $apikey API key
+     * @param string $status Filter: 'all' | 'active' | 'suspended'
+     * @return array List of users
+     */
+    public static function get_users($apikey, $status = 'all') {
+        global $DB;
+
+        $params = self::validate_parameters(self::get_users_parameters(), [
+            'apikey' => $apikey,
+            'status' => $status,
+        ]);
+
+        if (!self::validate_api_key($params['apikey'])) {
+            throw new moodle_exception('invalidapikey', 'local_hrms');
+        }
+
+        $context = context_system::instance();
+        self::validate_context($context);
+
+        $allowedstatuses = ['all', 'active', 'suspended'];
+        if (!in_array($params['status'], $allowedstatuses, true)) {
+            throw new moodle_exception('invalidstatus', 'local_hrms');
+        }
+
+        $where = 'u.deleted = 0 AND u.confirmed = 1 AND u.id != :guestid';
+        $sqlparams = ['guestid' => guest_user()->id];
+
+        if ($params['status'] === 'active') {
+            $where .= ' AND u.suspended = 0';
+        } else if ($params['status'] === 'suspended') {
+            $where .= ' AND u.suspended = 1';
+        }
+
+        $sql = "SELECT u.id, u.username, u.email, u.firstname, u.lastname,
+                       u.suspended, u.timecreated, u.lastlogin,
+                       COALESCE(uid.data, '') AS branch
+                FROM {user} u
+                LEFT JOIN {user_info_field} uif ON uif.shortname = 'branch'
+                LEFT JOIN {user_info_data} uid ON uid.userid = u.id AND uid.fieldid = uif.id
+                WHERE {$where}
+                ORDER BY u.lastname, u.firstname";
+
+        $users = $DB->get_records_sql($sql, $sqlparams);
+
+        $result = [];
+        foreach ($users as $user) {
+            $result[] = [
+                'id'          => (int) $user->id,
+                'username'    => $user->username,
+                'email'       => $user->email,
+                'firstname'   => $user->firstname,
+                'lastname'    => $user->lastname,
+                'suspended'   => (int) $user->suspended,
+                'timecreated' => (int) $user->timecreated,
+                'lastlogin'   => (int) $user->lastlogin,
+                'branch'      => $user->branch ?: '',
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Returns description of method result value for get_users
+     * @return external_description
+     */
+    public static function get_users_returns() {
+        return new external_multiple_structure(
+            new external_single_structure([
+                'id'          => new external_value(PARAM_INT,   'User ID'),
+                'username'    => new external_value(PARAM_TEXT,  'Username'),
+                'email'       => new external_value(PARAM_EMAIL, 'User email'),
+                'firstname'   => new external_value(PARAM_TEXT,  'First name'),
+                'lastname'    => new external_value(PARAM_TEXT,  'Last name'),
+                'suspended'   => new external_value(PARAM_INT,   'Suspended status (1=suspended, 0=active)'),
+                'timecreated' => new external_value(PARAM_INT,   'Account creation timestamp'),
+                'lastlogin'   => new external_value(PARAM_INT,   'Last login timestamp'),
+                'branch'      => new external_value(PARAM_TEXT,  'Branch / company name'),
+            ])
+        );
+    }
+
+    /**
      * Validate API key
      * @param string $apikey API key to validate
      * @return bool True if valid, false otherwise
