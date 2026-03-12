@@ -859,4 +859,178 @@ class local_hrms_external extends external_api {
         ]);
     }
 
+    /**
+     * Returns description of method parameters for update_course
+     * @return external_function_parameters
+     */
+    public static function update_course_parameters() {
+        return new external_function_parameters([
+            'apikey'       => new external_value(PARAM_TEXT,  'API key for authentication'),
+            'idnumber'     => new external_value(PARAM_TEXT,  'Course ID number to identify the course'),
+            'fullname'     => new external_value(PARAM_TEXT,  'New course full name',                     VALUE_OPTIONAL, ''),
+            'shortname'    => new external_value(PARAM_TEXT,  'New course short name',                    VALUE_OPTIONAL, ''),
+            'new_idnumber' => new external_value(PARAM_TEXT,  'New course ID number (rename idnumber)',   VALUE_OPTIONAL, ''),
+            'summary'      => new external_value(PARAM_RAW,   'New course summary',                       VALUE_OPTIONAL, ''),
+            'categoryid'   => new external_value(PARAM_INT,   'New category ID (0 = no change)',          VALUE_OPTIONAL, 0),
+            'startdate'    => new external_value(PARAM_INT,   'New start date unix timestamp (0 = no change)', VALUE_OPTIONAL, 0),
+            'enddate'      => new external_value(PARAM_INT,   'New end date unix timestamp (-1 = no change)',  VALUE_OPTIONAL, -1),
+            'visible'      => new external_value(PARAM_INT,   'Visibility: 1=visible, 0=hidden, -1=no change', VALUE_OPTIONAL, -1),
+            'jp'           => new external_value(PARAM_INT,   'JP custom field value (0 = no change)',    VALUE_OPTIONAL, 0),
+        ]);
+    }
+
+    /**
+     * Update an existing course identified by its ID number
+     *
+     * @param string $apikey       API key
+     * @param string $idnumber     Course idnumber to look up
+     * @param string $fullname     New full name (empty = no change)
+     * @param string $shortname    New short name (empty = no change)
+     * @param string $new_idnumber New idnumber (empty = no change)
+     * @param string $summary      New summary (empty = no change)
+     * @param int    $categoryid   New category ID (0 = no change)
+     * @param int    $startdate    New start date timestamp (0 = no change)
+     * @param int    $enddate      New end date timestamp (-1 = no change)
+     * @param int    $visible      Visibility 1/0 (-1 = no change)
+     * @param int    $jp           JP custom field value (0 = no change)
+     * @return array Updated course info
+     */
+    public static function update_course(
+        $apikey, $idnumber, $fullname = '', $shortname = '', $new_idnumber = '',
+        $summary = '', $categoryid = 0, $startdate = 0, $enddate = -1, $visible = -1, $jp = 0
+    ) {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/course/lib.php');
+
+        $params = self::validate_parameters(self::update_course_parameters(), [
+            'apikey'       => $apikey,
+            'idnumber'     => $idnumber,
+            'fullname'     => $fullname,
+            'shortname'    => $shortname,
+            'new_idnumber' => $new_idnumber,
+            'summary'      => $summary,
+            'categoryid'   => $categoryid,
+            'startdate'    => $startdate,
+            'enddate'      => $enddate,
+            'visible'      => $visible,
+            'jp'           => $jp,
+        ]);
+
+        if (!self::validate_api_key($params['apikey'])) {
+            throw new moodle_exception('invalidapikey', 'local_hrms');
+        }
+
+        $context = context_system::instance();
+        self::validate_context($context);
+
+        // Find course by idnumber.
+        $course = $DB->get_record('course', ['idnumber' => $params['idnumber']], '*', MUST_EXIST);
+
+        $coursedata = (object) ['id' => $course->id];
+
+        if ($params['fullname'] !== '') {
+            $coursedata->fullname = $params['fullname'];
+        }
+
+        if ($params['shortname'] !== '') {
+            // Ensure new shortname is not taken by a different course.
+            if ($DB->record_exists_select('course', 'shortname = :sn AND id != :cid',
+                    ['sn' => $params['shortname'], 'cid' => $course->id])) {
+                throw new moodle_exception('shortnametaken', 'error', '', $params['shortname']);
+            }
+            $coursedata->shortname = $params['shortname'];
+        }
+
+        if ($params['new_idnumber'] !== '') {
+            // Ensure new idnumber is not taken by a different course.
+            if ($DB->record_exists_select('course', 'idnumber = :idn AND id != :cid',
+                    ['idn' => $params['new_idnumber'], 'cid' => $course->id])) {
+                throw new moodle_exception('courseidnumbertaken', 'error', '', $params['new_idnumber']);
+            }
+            $coursedata->idnumber = $params['new_idnumber'];
+        }
+
+        if ($params['summary'] !== '') {
+            $coursedata->summary       = $params['summary'];
+            $coursedata->summaryformat = FORMAT_HTML;
+        }
+
+        if ($params['categoryid'] > 0) {
+            core_course_category::get($params['categoryid'], MUST_EXIST);
+            $coursedata->category = $params['categoryid'];
+        }
+
+        if ($params['startdate'] > 0) {
+            $coursedata->startdate = $params['startdate'];
+        }
+
+        if ($params['enddate'] >= 0) {
+            $coursedata->enddate = $params['enddate'];
+        }
+
+        if ($params['visible'] >= 0) {
+            $coursedata->visible = $params['visible'] ? 1 : 0;
+        }
+
+        update_course($coursedata);
+
+        // Update JP custom field if requested.
+        if ($params['jp'] > 0) {
+            $handler    = \core_customfield\handler::get_handler('core_course', 'course');
+            $fieldsdata = $handler->get_instance_data($course->id, true);
+            foreach ($fieldsdata as $fielddata) {
+                if ($fielddata->get_field()->get('shortname') === 'jp') {
+                    $fielddata->set('value', $params['jp']);
+                    $fielddata->set('valueformat', FORMAT_PLAIN);
+                    $fielddata->save();
+                    break;
+                }
+            }
+        }
+
+        // Reload updated record.
+        $updated = $DB->get_record('course', ['id' => $course->id], '*', MUST_EXIST);
+
+        // Read current JP value for return.
+        $jpvalue = 0;
+        $handler    = \core_customfield\handler::get_handler('core_course', 'course');
+        $fieldsdata = $handler->get_instance_data($updated->id, true);
+        foreach ($fieldsdata as $fielddata) {
+            if ($fielddata->get_field()->get('shortname') === 'jp') {
+                $jpvalue = (int) $fielddata->get('value');
+                break;
+            }
+        }
+
+        return [
+            'id'         => (int) $updated->id,
+            'shortname'  => $updated->shortname,
+            'fullname'   => $updated->fullname,
+            'idnumber'   => $updated->idnumber ?: '',
+            'categoryid' => (int) $updated->category,
+            'startdate'  => (int) $updated->startdate,
+            'enddate'    => (int) $updated->enddate,
+            'visible'    => (int) $updated->visible,
+            'jp'         => $jpvalue,
+        ];
+    }
+
+    /**
+     * Returns description of method result value for update_course
+     * @return external_description
+     */
+    public static function update_course_returns() {
+        return new external_single_structure([
+            'id'         => new external_value(PARAM_INT,  'Course ID'),
+            'shortname'  => new external_value(PARAM_TEXT, 'Course short name'),
+            'fullname'   => new external_value(PARAM_TEXT, 'Course full name'),
+            'idnumber'   => new external_value(PARAM_TEXT, 'Course ID number'),
+            'categoryid' => new external_value(PARAM_INT,  'Category ID'),
+            'startdate'  => new external_value(PARAM_INT,  'Start date'),
+            'enddate'    => new external_value(PARAM_INT,  'End date'),
+            'visible'    => new external_value(PARAM_INT,  'Visibility (1=visible, 0=hidden)'),
+            'jp'         => new external_value(PARAM_INT,  'JP custom field value'),
+        ]);
+    }
+
 }
