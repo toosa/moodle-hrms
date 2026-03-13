@@ -8,7 +8,8 @@ A comprehensive web service plugin for Moodle that provides REST API endpoints f
 
 ## 📚 Documentation
 
-- **[📘 Complete Design Documentation](DESIGN.md)** - Architecture, sequence diagrams, database design
+- **[� API Developer Guide](API_GUIDE.md)** - **Mulai di sini** — Referensi lengkap semua fungsi API, parameter, contoh request/response, dan contoh implementasi (PHP, Python, JS, CI3)
+- **[�📘 Complete Design Documentation](DESIGN.md)** - Architecture, sequence diagrams, database design
 - **[📊 Sequence Diagrams](DIAGRAMS.md)** - Visual flow diagrams in Mermaid format  
 - **[⚡ Quick Reference](QUICKREF.md)** - Fast lookup guide for daily use
 - **[📖 API Reference](#-api-endpoints)** - Endpoint documentation below
