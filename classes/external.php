@@ -160,15 +160,22 @@ class local_hrms_external extends external_api {
         // IMPORTANT: Use CONCAT to create unique key (user_id-course_id) to prevent duplicates
         $sql = "SELECT CONCAT(u.id, '-', c.id) as id,
                        u.id as user_id, u.email, u.firstname, u.lastname, 
-                       COALESCE(uid.data, '') as company_name,
+                       COALESCE(u.institution, '') as company_name,
                        c.id as course_id, c.shortname, c.fullname as course_name,
-                       ue.timecreated as enrollment_date
+                       ue.timecreated as enrollment_date,
+                       COALESCE((
+                           SELECT r.shortname
+                           FROM {role_assignments} ra
+                           JOIN {context} ctx ON ctx.id = ra.contextid AND ctx.contextlevel = 50
+                           JOIN {role} r ON r.id = ra.roleid
+                           WHERE ra.userid = u.id AND ctx.instanceid = c.id
+                           ORDER BY r.sortorder ASC
+                           LIMIT 1
+                       ), '') as role
                 FROM {user} u
                 JOIN {user_enrolments} ue ON u.id = ue.userid
                 JOIN {enrol} e ON ue.enrolid = e.id
                 JOIN {course} c ON e.courseid = c.id
-                LEFT JOIN {user_info_field} uif ON uif.shortname = 'branch'
-                LEFT JOIN {user_info_data} uid ON u.id = uid.userid AND uid.fieldid = uif.id
                 WHERE u.deleted = 0 
                 AND u.confirmed = 1
                 AND c.id != :siteid
@@ -196,7 +203,8 @@ class local_hrms_external extends external_api {
                 'course_id' => $participant->course_id,
                 'course_shortname' => $participant->shortname,
                 'course_name' => $participant->course_name,
-                'enrollment_date' => $participant->enrollment_date
+                'enrollment_date' => $participant->enrollment_date,
+                'role' => $participant->role ?: ''
             ];
         }
 
@@ -218,7 +226,8 @@ class local_hrms_external extends external_api {
                 'course_id' => new external_value(PARAM_INT, 'Course ID'),
                 'course_shortname' => new external_value(PARAM_TEXT, 'Course short name'),
                 'course_name' => new external_value(PARAM_TEXT, 'Course name'),
-                'enrollment_date' => new external_value(PARAM_INT, 'Enrollment date')
+                'enrollment_date' => new external_value(PARAM_INT, 'Enrollment date'),
+                'role' => new external_value(PARAM_TEXT, 'User role in course (e.g. student, editingteacher, teacher)')
             ])
         );
     }
@@ -266,7 +275,7 @@ class local_hrms_external extends external_api {
         // when same user is enrolled in multiple courses
         $sql = "SELECT CONCAT(u.id, '-', c.id) as id,
                        u.id as user_id, u.email, u.firstname, u.lastname,
-                       COALESCE(uid.data, '') as company_name,
+                       COALESCE(u.institution, '') as company_name,
                        c.id as course_id, c.shortname, c.fullname as course_name,
                        cc.timecompleted,
                        COALESCE(gg.finalgrade, 0) as final_grade
@@ -277,8 +286,6 @@ class local_hrms_external extends external_api {
                 LEFT JOIN {course_completions} cc ON u.id = cc.userid AND c.id = cc.course
                 LEFT JOIN {grade_items} gi ON c.id = gi.courseid AND gi.itemtype = 'course'
                 LEFT JOIN {grade_grades} gg ON u.id = gg.userid AND gi.id = gg.itemid
-                LEFT JOIN {user_info_field} uif ON uif.shortname = 'branch'
-                LEFT JOIN {user_info_data} uid ON u.id = uid.userid AND uid.fieldid = uif.id
                 WHERE u.deleted = 0 
                 AND u.confirmed = 1
                 AND c.id != :siteid

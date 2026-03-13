@@ -218,11 +218,12 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `email` | string | Alamat email pengguna |
 | `firstname` | string | Nama depan |
 | `lastname` | string | Nama belakang |
-| `company_name` | string | Nama perusahaan/cabang (dari profil field `branch`, bisa kosong) |
+| `company_name` | string | Nama institusi/perusahaan (dari field standar `institution`, bisa kosong) |
 | `course_id` | int | ID kursus |
 | `course_shortname` | string | Nama pendek kursus |
 | `course_name` | string | Nama lengkap kursus |
 | `enrollment_date` | int | Tanggal pendaftaran (Unix timestamp) |
+| `role` | string | Peran pengguna dalam kursus (contoh: `student`, `editingteacher`, `teacher`). Kosong jika tidak ada role assignment. |
 
 #### Contoh Request
 
@@ -253,11 +254,12 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
     "email": "budi.santoso@perusahaan.co.id",
     "firstname": "Budi",
     "lastname": "Santoso",
-    "company_name": "Cabang Surabaya",
+    "company_name": "PT Contoh Indonesia",
     "course_id": 12,
     "course_shortname": "k3-dasar",
     "course_name": "Pelatihan K3 Dasar",
-    "enrollment_date": 1740873600
+    "enrollment_date": 1740873600,
+    "role": "student"
   }
 ]
 ```
@@ -285,7 +287,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `email` | string | Email pengguna |
 | `firstname` | string | Nama depan |
 | `lastname` | string | Nama belakang |
-| `company_name` | string | Nama perusahaan/cabang |
+| `company_name` | string | Nama institusi/perusahaan (dari field standar `institution`) |
 | `course_id` | int | ID kursus |
 | `course_shortname` | string | Nama pendek kursus |
 | `course_name` | string | Nama lengkap kursus |
@@ -338,7 +340,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
     "email": "budi.santoso@perusahaan.co.id",
     "firstname": "Budi",
     "lastname": "Santoso",
-    "company_name": "Cabang Surabaya",
+    "company_name": "PT Contoh Indonesia",
     "course_id": 12,
     "course_shortname": "k3-dasar",
     "course_name": "Pelatihan K3 Dasar",
@@ -1109,11 +1111,11 @@ class Hrms_client
 |-----------|------|------------|
 | `jp` | Numeric / Text | Jumlah Jam Pelatihan (JP) — opsional, digunakan pada `create_course` dan `update_course` |
 
-#### Custom Field pada User Profile
+#### Field Standar User yang Digunakan
 
-| Shortname | Tipe | Keterangan |
-|-----------|------|------------|
-| `branch` | Text | Nama perusahaan/cabang pengguna — ditampilkan sebagai `company_name` |
+| Field | Tipe | Keterangan |
+|-------|------|------------|
+| `institution` | Text | Nama institusi/perusahaan pengguna — ditampilkan sebagai `company_name`. Diisi melalui profil pengguna Moodle (field bawaan, tidak perlu custom field). |
 
 ---
 
