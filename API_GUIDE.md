@@ -20,6 +20,7 @@
    - [WRITE — Suspend / Unsuspend Pengguna](#45-local_hrms_set_user_suspension)
    - [WRITE — Buat Kursus Baru](#46-local_hrms_create_course)
    - [WRITE — Update Setting Kursus](#47-local_hrms_update_course)
+   - [WRITE — Buat Pengguna Baru](#48-local_hrms_create_user)
 5. [Format Error Response](#5-format-error-response)
 6. [Contoh Implementasi](#6-contoh-implementasi)
    - [cURL / Shell](#61-curl--shell)
@@ -670,6 +671,88 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 
 ---
 
+### 4.8 `local_hrms_create_user`
+
+**Tipe**: Write  
+**Kapabilitas**: `moodle/user:create`  
+**Deskripsi**: Membuat akun pengguna baru di Moodle. Jika email yang dikirim sudah digunakan oleh pengguna lain, pembuatan akun akan ditolak dengan pesan error.
+
+#### Parameter Request
+
+| Parameter | Tipe | Wajib | Default | Keterangan |
+|-----------|------|-------|---------|------------|
+| `apikey` | string | Ya | — | API key HRMS |
+| `username` | string | Ya | — | Username login (huruf kecil, tanpa spasi) |
+| `email` | string | Ya | — | Alamat email (harus unik) |
+| `firstname` | string | Ya | — | Nama depan |
+| `lastname` | string | Ya | — | Nama belakang |
+| `password` | string | Ya | — | Password plain-text |
+| `institution` | string | Tidak | `""` | Nama institusi/perusahaan |
+| `department` | string | Tidak | `""` | Departemen |
+| `phone1` | string | Tidak | `""` | Nomor telepon |
+| `city` | string | Tidak | `""` | Kota |
+| `country` | string | Tidak | `""` | Kode negara dua huruf (contoh: `ID`) |
+| `auth` | string | Tidak | `manual` | Plugin autentikasi (contoh: `manual`, `ldap`) |
+
+#### Response Fields
+
+| Field | Tipe | Keterangan |
+|-------|------|------------|
+| `id` | int | ID pengguna yang baru dibuat |
+| `username` | string | Username |
+| `email` | string | Alamat email |
+| `firstname` | string | Nama depan |
+| `lastname` | string | Nama belakang |
+| `institution` | string | Nama institusi/perusahaan |
+| `department` | string | Departemen |
+| `auth` | string | Plugin autentikasi yang digunakan |
+| `timecreated` | int | Waktu akun dibuat (Unix timestamp) |
+
+#### Contoh Request
+
+```bash
+curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
+  -d "wstoken=TOKEN_ANDA" \
+  -d "wsfunction=local_hrms_create_user" \
+  -d "moodlewsrestformat=json" \
+  -d "apikey=APIKEY_ANDA" \
+  -d "username=siti.rahayu" \
+  -d "email=siti.rahayu@perusahaan.co.id" \
+  -d "firstname=Siti" \
+  -d "lastname=Rahayu" \
+  -d "password=P@ssw0rd!" \
+  -d "institution=PT Contoh Indonesia" \
+  -d "department=SDM" \
+  -d "city=Jakarta" \
+  -d "country=ID"
+```
+
+#### Contoh Response
+
+```json
+{
+  "id": 95,
+  "username": "siti.rahayu",
+  "email": "siti.rahayu@perusahaan.co.id",
+  "firstname": "Siti",
+  "lastname": "Rahayu",
+  "institution": "PT Contoh Indonesia",
+  "department": "SDM",
+  "auth": "manual",
+  "timecreated": 1741824000
+}
+```
+
+#### Error yang Mungkin Muncul
+
+| Errorcode | Penyebab |
+|-----------|----------|
+| `emailalreadyused` | Email sudah digunakan oleh pengguna lain. Penambahan user baru tidak dapat dilakukan. |
+| `usernameexists` | Username sudah digunakan oleh pengguna lain |
+| `invalidapikey` | API key salah |
+
+---
+
 ## 5. Format Error Response
 
 Seluruh error dikembalikan dalam format JSON berikut:
@@ -692,6 +775,8 @@ Seluruh error dikembalikan dalam format JSON berikut:
 | `shortnametaken` | Shortname kursus sudah digunakan | Gunakan shortname yang berbeda |
 | `courseidnumbertaken` | idnumber sudah digunakan kursus lain | Gunakan idnumber yang berbeda |
 | `invalidstatus` | Nilai parameter `status` tidak valid | Gunakan: `all`, `active`, atau `suspended` |
+| `emailalreadyused` | Email sudah digunakan pengguna lain | Gunakan alamat email yang berbeda |
+| `usernameexists` | Username sudah digunakan pengguna lain | Gunakan username yang berbeda |
 
 ---
 
@@ -737,6 +822,18 @@ call_api "local_hrms_create_course" \
 call_api "local_hrms_update_course" \
   -d "idnumber=KRS-2026-099" \
   -d "visible=0"
+
+# Buat pengguna baru
+call_api "local_hrms_create_user" \
+  -d "username=siti.rahayu" \
+  -d "email=siti.rahayu@perusahaan.co.id" \
+  -d "firstname=Siti" \
+  -d "lastname=Rahayu" \
+  -d "password=P@ssw0rd!" \
+  -d "institution=PT Contoh Indonesia" \
+  -d "department=SDM" \
+  -d "city=Jakarta" \
+  -d "country=ID"
 ```
 
 ---
@@ -836,6 +933,11 @@ class HrmsClient
             $changes
         ));
     }
+
+    public function createUser(array $data): array
+    {
+        return $this->call('local_hrms_create_user', $data);
+    }
 }
 
 // --- Penggunaan ---
@@ -868,6 +970,20 @@ $updated = $client->updateCourse('TRAIN-2026-100', [
     'visible'  => 0,
 ]);
 echo "Kursus diupdate: {$updated['fullname']}\n";
+
+// Buat pengguna baru
+$newUser = $client->createUser([
+    'username'    => 'siti.rahayu',
+    'email'       => 'siti.rahayu@perusahaan.co.id',
+    'firstname'   => 'Siti',
+    'lastname'    => 'Rahayu',
+    'password'    => 'P@ssw0rd!',
+    'institution' => 'PT Contoh Indonesia',
+    'department'  => 'SDM',
+    'city'        => 'Jakarta',
+    'country'     => 'ID',
+]);
+echo "Pengguna dibuat: ID {$newUser['id']}\n";
 ```
 
 ---
@@ -920,6 +1036,9 @@ class HrmsClient:
     def update_course(self, idnumber: str, **kwargs):
         return self._call('local_hrms_update_course', idnumber=idnumber, **kwargs)
 
+    def create_user(self, **kwargs):
+        return self._call('local_hrms_create_user', **kwargs)
+
 
 # --- Penggunaan ---
 client = HrmsClient(
@@ -946,6 +1065,20 @@ print(f"Kursus dibuat: id={new['id']}")
 # Sembunyikan kursus
 updated = client.update_course('TRAIN-2026-200', visible=0)
 print(f"Kursus disembunyikan: visible={updated['visible']}")
+
+# Buat pengguna baru
+new_user = client.create_user(
+    username='siti.rahayu',
+    email='siti.rahayu@perusahaan.co.id',
+    firstname='Siti',
+    lastname='Rahayu',
+    password='P@ssw0rd!',
+    institution='PT Contoh Indonesia',
+    department='SDM',
+    city='Jakarta',
+    country='ID',
+)
+print(f"Pengguna dibuat: id={new_user['id']}")
 ```
 
 ---
@@ -992,6 +1125,7 @@ class HrmsClient {
   updateCourse(idnumber, changes)          {
     return this.call('local_hrms_update_course', { idnumber, ...changes });
   }
+  createUser(data)                         { return this.call('local_hrms_create_user', data); }
 }
 
 // --- Penggunaan ---
@@ -1008,6 +1142,20 @@ courses.forEach(c => console.log(c.idnumber, c.fullname));
 // Update kursus
 const updated = await client.updateCourse('TRAIN-2026-001', { visible: 0, jp: 16 });
 console.log('Updated:', updated);
+
+// Buat pengguna baru
+const newUser = await client.createUser({
+  username: 'siti.rahayu',
+  email: 'siti.rahayu@perusahaan.co.id',
+  firstname: 'Siti',
+  lastname: 'Rahayu',
+  password: 'P@ssw0rd!',
+  institution: 'PT Contoh Indonesia',
+  department: 'SDM',
+  city: 'Jakarta',
+  country: 'ID',
+});
+console.log('User dibuat:', newUser.id);
 ```
 
 ---
@@ -1085,6 +1233,7 @@ class Hrms_client
     }
     public function create_course($data)                         { return $this->call('local_hrms_create_course', $data); }
     public function update_course($idnumber, $changes)           { return $this->call('local_hrms_update_course', array_merge(['idnumber' => $idnumber], $changes)); }
+    public function create_user($data)                           { return $this->call('local_hrms_create_user', $data); }
 }
 ```
 
@@ -1133,6 +1282,7 @@ class Hrms_client
 | `local_hrms_set_user_suspension` | `set_user_suspension()` | write | `moodle/user:update` |
 | `local_hrms_create_course` | `create_course()` | write | `moodle/course:create` |
 | `local_hrms_update_course` | `update_course()` | write | `moodle/course:update` |
+| `local_hrms_create_user` | `create_user()` | write | `moodle/user:create` |
 
 ### Service yang Tersedia
 

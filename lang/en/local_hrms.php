@@ -32,3 +32,4 @@ $string['hrms_api_key'] = 'API Key';
 $string['hrms_api_key_desc'] = 'Secret API key for HRMS system authentication';
 $string['hrms_settings'] = 'HRMS Integration Settings';
 $string['privacy:metadata'] = 'The HRMS Integration plugin does not store any personal data.';
+$string['emailalreadyused'] = 'A user with this email address already exists. The new user could not be created.';

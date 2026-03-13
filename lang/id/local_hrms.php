@@ -31,4 +31,4 @@ $string['hrms_api_enabled_desc'] = 'Aktifkan layanan web API untuk HRMS';
 $string['hrms_api_key'] = 'Kunci API';
 $string['hrms_api_key_desc'] = 'Kunci API rahasia untuk otentikasi sistem HRMS';
 $string['hrms_settings'] = 'Pengaturan Integrasi HRMS';
-$string['privacy:metadata'] = 'Plugin Integrasi HRMS tidak menyimpan data pribadi apapun.';
+$string['privacy:metadata'] = 'Plugin Integrasi HRMS tidak menyimpan data pribadi apapun.';$string['emailalreadyused'] = 'Pengguna dengan alamat email ini sudah ada. Penambahan user baru tidak dapat dilakukan.';

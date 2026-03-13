@@ -1040,4 +1040,137 @@ class local_hrms_external extends external_api {
         ]);
     }
 
+    /**
+     * Returns description of method parameters for create_user
+     * @return external_function_parameters
+     */
+    public static function create_user_parameters() {
+        return new external_function_parameters([
+            'apikey'      => new external_value(PARAM_TEXT,  'API key for authentication'),
+            'username'    => new external_value(PARAM_USERNAME, 'Username (lowercase, no spaces)'),
+            'email'       => new external_value(PARAM_EMAIL, 'Email address'),
+            'firstname'   => new external_value(PARAM_TEXT,  'First name'),
+            'lastname'    => new external_value(PARAM_TEXT,  'Last name'),
+            'password'    => new external_value(PARAM_RAW,   'Plain-text password'),
+            'institution' => new external_value(PARAM_TEXT,  'Institution / company name', VALUE_OPTIONAL, ''),
+            'department'  => new external_value(PARAM_TEXT,  'Department', VALUE_OPTIONAL, ''),
+            'phone1'      => new external_value(PARAM_TEXT,  'Phone number', VALUE_OPTIONAL, ''),
+            'city'        => new external_value(PARAM_TEXT,  'City', VALUE_OPTIONAL, ''),
+            'country'     => new external_value(PARAM_ALPHA, 'Two-letter country code (e.g. ID)', VALUE_OPTIONAL, ''),
+            'auth'        => new external_value(PARAM_PLUGIN, 'Auth plugin (default: manual)', VALUE_OPTIONAL, 'manual'),
+        ]);
+    }
+
+    /**
+     * Create a new Moodle user
+     * @param string $apikey
+     * @param string $username
+     * @param string $email
+     * @param string $firstname
+     * @param string $lastname
+     * @param string $password
+     * @param string $institution
+     * @param string $department
+     * @param string $phone1
+     * @param string $city
+     * @param string $country
+     * @param string $auth
+     * @return array Created user info
+     */
+    public static function create_user(
+        $apikey, $username, $email, $firstname, $lastname, $password,
+        $institution = '', $department = '', $phone1 = '', $city = '', $country = '', $auth = 'manual'
+    ) {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/user/lib.php');
+
+        $params = self::validate_parameters(self::create_user_parameters(), [
+            'apikey'      => $apikey,
+            'username'    => $username,
+            'email'       => $email,
+            'firstname'   => $firstname,
+            'lastname'    => $lastname,
+            'password'    => $password,
+            'institution' => $institution,
+            'department'  => $department,
+            'phone1'      => $phone1,
+            'city'        => $city,
+            'country'     => $country,
+            'auth'        => $auth,
+        ]);
+
+        if (!self::validate_api_key($params['apikey'])) {
+            throw new moodle_exception('invalidapikey', 'local_hrms');
+        }
+
+        $context = context_system::instance();
+        self::validate_context($context);
+
+        // Check email uniqueness.
+        if ($DB->record_exists('user', ['email' => $params['email'], 'deleted' => 0])) {
+            throw new moodle_exception('emailalreadyused', 'local_hrms');
+        }
+
+        // Check username uniqueness.
+        if ($DB->record_exists('user', ['username' => $params['username'], 'mnethostid' => $CFG->mnet_localhost_id])) {
+            throw new moodle_exception('usernameexists', 'error');
+        }
+
+        // Validate auth plugin exists.
+        if (!exists_auth_plugin($params['auth'])) {
+            throw new moodle_exception('authpluginnotfound', 'debug', '', $params['auth']);
+        }
+
+        $userdata = (object) [
+            'username'    => $params['username'],
+            'email'       => $params['email'],
+            'firstname'   => $params['firstname'],
+            'lastname'    => $params['lastname'],
+            'password'    => $params['password'],
+            'institution' => $params['institution'],
+            'department'  => $params['department'],
+            'phone1'      => $params['phone1'],
+            'city'        => $params['city'],
+            'country'     => $params['country'],
+            'auth'        => $params['auth'],
+            'confirmed'   => 1,
+            'mnethostid'  => $CFG->mnet_localhost_id,
+            'lang'        => $CFG->lang ?: 'en',
+        ];
+
+        $userid = user_create_user($userdata, true, true);
+
+        $user = $DB->get_record('user', ['id' => $userid], '*', MUST_EXIST);
+
+        return [
+            'id'          => (int) $user->id,
+            'username'    => $user->username,
+            'email'       => $user->email,
+            'firstname'   => $user->firstname,
+            'lastname'    => $user->lastname,
+            'institution' => $user->institution ?: '',
+            'department'  => $user->department ?: '',
+            'auth'        => $user->auth,
+            'timecreated' => (int) $user->timecreated,
+        ];
+    }
+
+    /**
+     * Returns description of method result value for create_user
+     * @return external_description
+     */
+    public static function create_user_returns() {
+        return new external_single_structure([
+            'id'          => new external_value(PARAM_INT,   'New user ID'),
+            'username'    => new external_value(PARAM_TEXT,  'Username'),
+            'email'       => new external_value(PARAM_EMAIL, 'Email address'),
+            'firstname'   => new external_value(PARAM_TEXT,  'First name'),
+            'lastname'    => new external_value(PARAM_TEXT,  'Last name'),
+            'institution' => new external_value(PARAM_TEXT,  'Institution / company name'),
+            'department'  => new external_value(PARAM_TEXT,  'Department'),
+            'auth'        => new external_value(PARAM_TEXT,  'Auth plugin used'),
+            'timecreated' => new external_value(PARAM_INT,   'Account creation timestamp'),
+        ]);
+    }
+
 }

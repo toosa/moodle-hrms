@@ -98,6 +98,15 @@ $functions = [
         'ajax'        => true,
         'capabilities' => 'moodle/course:update',
     ],
+    'local_hrms_create_user' => [
+        'classname'   => 'local_hrms_external',
+        'methodname'  => 'create_user',
+        'classpath'   => 'local/hrms/classes/external.php',
+        'description' => 'Create a new Moodle user',
+        'type'        => 'write',
+        'ajax'        => true,
+        'capabilities' => 'moodle/user:create',
+    ],
 ];
 
 // Define services to install as pre-build services.
@@ -112,6 +121,7 @@ $services = [
             'local_hrms_get_users',
             'local_hrms_create_course',
             'local_hrms_update_course',
+            'local_hrms_create_user',
         ],
         'restrictedusers' => 0,
         'enabled' => 1,
