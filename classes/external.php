@@ -1173,4 +1173,125 @@ class local_hrms_external extends external_api {
         ]);
     }
 
+    /**
+     * Returns description of method parameters for update_user
+     * @return external_function_parameters
+     */
+    public static function update_user_parameters() {
+        return new external_function_parameters([
+            'apikey'      => new external_value(PARAM_TEXT,  'API key for authentication'),
+            'userid'      => new external_value(PARAM_INT,   'User ID', VALUE_OPTIONAL, 0),
+            'email'       => new external_value(PARAM_EMAIL, 'User email to identify user', VALUE_OPTIONAL, ''),
+            'new_email'   => new external_value(PARAM_EMAIL, 'New email address (empty = no change)', VALUE_OPTIONAL, ''),
+            'firstname'   => new external_value(PARAM_TEXT,  'New first name (empty = no change)', VALUE_OPTIONAL, ''),
+            'lastname'    => new external_value(PARAM_TEXT,  'New last name (empty = no change)', VALUE_OPTIONAL, ''),
+            'institution' => new external_value(PARAM_TEXT,  'New institution/company name (empty = no change)', VALUE_OPTIONAL, ''),
+        ]);
+    }
+
+    /**
+     * Update user data (firstname, lastname, institution, email)
+     * @param string $apikey API key
+     * @param int    $userid User ID (0 = identify by email)
+     * @param string $email  Current email to identify user (if userid = 0)
+     * @param string $new_email   New email (empty = no change)
+     * @param string $firstname   New first name (empty = no change)
+     * @param string $lastname    New last name (empty = no change)
+     * @param string $institution New institution (empty = no change)
+     * @return array Updated user info
+     */
+    public static function update_user(
+        $apikey, $userid = 0, $email = '', $new_email = '',
+        $firstname = '', $lastname = '', $institution = ''
+    ) {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/user/lib.php');
+
+        $params = self::validate_parameters(self::update_user_parameters(), [
+            'apikey'      => $apikey,
+            'userid'      => $userid,
+            'email'       => $email,
+            'new_email'   => $new_email,
+            'firstname'   => $firstname,
+            'lastname'    => $lastname,
+            'institution' => $institution,
+        ]);
+
+        if (!self::validate_api_key($params['apikey'])) {
+            throw new moodle_exception('invalidapikey', 'local_hrms');
+        }
+
+        $context = context_system::instance();
+        self::validate_context($context);
+
+        // Resolve user by userid or email.
+        $user = null;
+        if ($params['userid'] > 0) {
+            $user = $DB->get_record('user', ['id' => $params['userid'], 'deleted' => 0]);
+        } else if (!empty($params['email'])) {
+            $user = $DB->get_record('user', ['email' => $params['email'], 'deleted' => 0]);
+        }
+
+        if (!$user) {
+            throw new moodle_exception('invaliduser', 'error');
+        }
+
+        // Prevent editing site admins.
+        if (is_siteadmin($user->id)) {
+            throw new moodle_exception('useradminodelete', 'error');
+        }
+
+        $updateuser = (object) ['id' => $user->id];
+
+        if ($params['firstname'] !== '') {
+            $updateuser->firstname = $params['firstname'];
+        }
+
+        if ($params['lastname'] !== '') {
+            $updateuser->lastname = $params['lastname'];
+        }
+
+        if ($params['institution'] !== '') {
+            $updateuser->institution = $params['institution'];
+        }
+
+        if ($params['new_email'] !== '') {
+            // Check new email is not already in use by another user.
+            if ($DB->record_exists_select('user', 'email = :email AND id != :uid AND deleted = 0',
+                    ['email' => $params['new_email'], 'uid' => $user->id])) {
+                throw new moodle_exception('emailalreadyused', 'local_hrms');
+            }
+            $updateuser->email = $params['new_email'];
+        }
+
+        user_update_user($updateuser, false, true);
+
+        // Reload updated record.
+        $updated = $DB->get_record('user', ['id' => $user->id], '*', MUST_EXIST);
+
+        return [
+            'id'          => (int) $updated->id,
+            'username'    => $updated->username,
+            'email'       => $updated->email,
+            'firstname'   => $updated->firstname,
+            'lastname'    => $updated->lastname,
+            'institution' => $updated->institution ?: '',
+        ];
+    }
+
+    /**
+     * Returns description of method result value for update_user
+     * @return external_description
+     */
+    public static function update_user_returns() {
+        return new external_single_structure([
+            'id'          => new external_value(PARAM_INT,   'User ID'),
+            'username'    => new external_value(PARAM_TEXT,  'Username'),
+            'email'       => new external_value(PARAM_EMAIL, 'Email address (after update)'),
+            'firstname'   => new external_value(PARAM_TEXT,  'First name (after update)'),
+            'lastname'    => new external_value(PARAM_TEXT,  'Last name (after update)'),
+            'institution' => new external_value(PARAM_TEXT,  'Institution / company name (after update)'),
+        ]);
+    }
+
 }
