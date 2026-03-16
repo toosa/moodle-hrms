@@ -340,10 +340,6 @@ class local_hrms_external extends external_api {
 
         $final_results = [];
         foreach ($results as $result) {
-            // Get pre-test and post-test scores
-            $pretest_score = self::get_quiz_score($result->user_id, $result->course_id, 'pre');
-            $posttest_score = self::get_quiz_score($result->user_id, $result->course_id, 'post');
-
             $final_results[] = [
                 'user_id' => $result->user_id,
                 'email' => $result->email,
@@ -354,8 +350,6 @@ class local_hrms_external extends external_api {
                 'course_shortname' => $result->shortname,
                 'course_name' => $result->course_name,
                 'final_grade' => round($result->final_grade, 2),
-                'pretest_score' => $pretest_score,
-                'posttest_score' => $posttest_score,
                 'completion_date' => $result->timecompleted ?: 0,
                 'is_completed' => $result->timecompleted ? 1 : 0
             ];
@@ -380,8 +374,6 @@ class local_hrms_external extends external_api {
                 'course_shortname' => new external_value(PARAM_TEXT, 'Course short name'),
                 'course_name' => new external_value(PARAM_TEXT, 'Course name'),
                 'final_grade' => new external_value(PARAM_FLOAT, 'Final grade'),
-                'pretest_score' => new external_value(PARAM_FLOAT, 'Pre-test score'),
-                'posttest_score' => new external_value(PARAM_FLOAT, 'Post-test score'),
                 'completion_date' => new external_value(PARAM_INT, 'Course completion date'),
                 'is_completed' => new external_value(PARAM_INT, 'Is course completed')
             ])

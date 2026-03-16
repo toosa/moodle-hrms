@@ -296,7 +296,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 ### 4.3 `local_hrms_get_course_results`
 
 **Tipe**: Read  
-**Deskripsi**: Mengembalikan hasil pembelajaran per peserta, termasuk nilai akhir, skor pre-test, dan skor post-test. Dapat disaring per kursus dan/atau per pengguna.
+**Deskripsi**: Mengembalikan hasil pembelajaran per peserta, termasuk nilai akhir dan status penyelesaian kursus. Dapat disaring per kursus dan/atau per pengguna.
 
 #### Parameter Request
 
@@ -320,22 +320,8 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `course_shortname` | string | Nama pendek kursus |
 | `course_name` | string | Nama lengkap kursus |
 | `final_grade` | float | Nilai akhir kursus |
-| `pretest_score` | float | Skor pre-test (nilai quiz dengan `jenis_quiz` = `2`). `0` jika tidak ada. |
-| `posttest_score` | float | Skor post-test (nilai quiz dengan `jenis_quiz` = `3`). `0` jika tidak ada. |
 | `completion_date` | int | Timestamp penyelesaian kursus. `0` = belum selesai |
 | `is_completed` | int | Status penyelesaian: `1` = selesai, `0` = belum |
-
-#### Catatan Pre/Post Test
-
-Quiz dideteksi sebagai pre-test atau post-test berdasarkan **custom field `jenis_quiz`** pada modul kursus:
-
-| Nilai field `jenis_quiz` | Makna |
-|--------------------------|-------|
-| `1` | Quiz biasa (Normal) |
-| `2` | Pre-Test |
-| `3` | Post-Test |
-
-Nilai yang diambil adalah nilai terbaik (MAX) yang pernah dicapai pengguna pada quiz tersebut.
 
 #### Contoh Request
 
@@ -381,8 +367,6 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
     "course_shortname": "k3-dasar",
     "course_name": "Pelatihan K3 Dasar",
     "final_grade": 87.50,
-    "pretest_score": 60.00,
-    "posttest_score": 92.50,
     "completion_date": 1743120000,
     "is_completed": 1
   }
