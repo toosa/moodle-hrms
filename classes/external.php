@@ -37,21 +37,27 @@ class local_hrms_external extends external_api {
      */
     public static function get_active_courses_parameters() {
         return new external_function_parameters([
-            'apikey' => new external_value(PARAM_TEXT, 'API key for authentication')
+            'apikey'   => new external_value(PARAM_TEXT, 'API key for authentication'),
+            'courseid' => new external_value(PARAM_INT,  'Course ID filter', VALUE_OPTIONAL, 0),
+            'idnumber' => new external_value(PARAM_TEXT, 'Course ID number filter', VALUE_OPTIONAL, '')
         ]);
     }
 
     /**
      * Get list of active courses
      * @param string $apikey API key
+     * @param int $courseid Course ID filter (0 = all courses)
+     * @param string $idnumber Course ID number filter (empty = all courses, ignored if courseid > 0)
      * @return array List of active courses
      */
-    public static function get_active_courses($apikey) {
+    public static function get_active_courses($apikey, $courseid = 0, $idnumber = '') {
         global $DB;
 
         // Validate parameters
         $params = self::validate_parameters(self::get_active_courses_parameters(), [
-            'apikey' => $apikey
+            'apikey'   => $apikey,
+            'courseid' => $courseid,
+            'idnumber' => $idnumber
         ]);
 
         // Validate API key
@@ -74,10 +80,21 @@ class local_hrms_external extends external_api {
                 LEFT JOIN {customfield_field} cff ON cff.shortname = 'jp' AND cff.categoryid = cfc.id
                 LEFT JOIN {customfield_data} cfd ON cfd.instanceid = c.id AND cfd.fieldid = cff.id
                 WHERE c.id != :siteid 
-                AND c.visible = 1
-                ORDER BY cc.name, c.fullname";
-        
-        $courses = $DB->get_records_sql($sql, ['siteid' => SITEID]);
+                AND c.visible = 1";
+
+        $sqlparams = ['siteid' => SITEID];
+
+        if ($params['courseid'] > 0) {
+            $sql .= " AND c.id = :courseid";
+            $sqlparams['courseid'] = $params['courseid'];
+        } else if (!empty($params['idnumber'])) {
+            $sql .= " AND c.idnumber = :idnumber";
+            $sqlparams['idnumber'] = $params['idnumber'];
+        }
+
+        $sql .= " ORDER BY cc.name, c.fullname";
+
+        $courses = $DB->get_records_sql($sql, $sqlparams);
         
         $result = [];
         foreach ($courses as $course) {
