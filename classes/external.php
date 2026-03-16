@@ -128,7 +128,8 @@ class local_hrms_external extends external_api {
     public static function get_course_participants_parameters() {
         return new external_function_parameters([
             'apikey' => new external_value(PARAM_TEXT, 'API key for authentication'),
-            'courseid' => new external_value(PARAM_INT, 'Course ID', VALUE_OPTIONAL, 0)
+            'courseid' => new external_value(PARAM_INT, 'Course ID', VALUE_OPTIONAL, 0),
+            'idnumber' => new external_value(PARAM_TEXT, 'Course ID number', VALUE_OPTIONAL, '')
         ]);
     }
 
@@ -136,15 +137,17 @@ class local_hrms_external extends external_api {
      * Get participants in courses
      * @param string $apikey API key
      * @param int $courseid Course ID (0 for all courses)
+     * @param string $idnumber Course ID number (empty for all courses, overridden by courseid if both given)
      * @return array List of participants
      */
-    public static function get_course_participants($apikey, $courseid = 0) {
+    public static function get_course_participants($apikey, $courseid = 0, $idnumber = '') {
         global $DB;
 
         // Validate parameters
         $params = self::validate_parameters(self::get_course_participants_parameters(), [
             'apikey' => $apikey,
-            'courseid' => $courseid
+            'courseid' => $courseid,
+            'idnumber' => $idnumber
         ]);
 
         // Validate API key
@@ -186,6 +189,10 @@ class local_hrms_external extends external_api {
         if ($params['courseid'] > 0) {
             $sql .= " AND c.id = :courseid";
             $sqlparams['courseid'] = $params['courseid'];
+        } else if (!empty($params['idnumber'])) {
+            $course = $DB->get_record('course', ['idnumber' => $params['idnumber']], 'id', MUST_EXIST);
+            $sql .= " AND c.id = :courseid";
+            $sqlparams['courseid'] = $course->id;
         }
 
         $sql .= " ORDER BY c.fullname, u.lastname, u.firstname";
