@@ -303,8 +303,9 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | Parameter | Tipe | Wajib | Default | Keterangan |
 |-----------|------|-------|---------|------------|
 | `apikey` | string | Ya | — | API key HRMS |
-| `courseid` | int | Tidak | `0` | ID kursus. `0` = semua kursus |
+| `courseid` | int | Tidak | `0` | ID internal kursus. `0` = semua kursus |
 | `userid` | int | Tidak | `0` | ID pengguna. `0` = semua pengguna |
+| `idnumber` | string | Tidak | `""` | ID number kursus (alternatif dari `courseid`). Diabaikan jika `courseid` > 0 |
 
 #### Response Fields
 
@@ -339,7 +340,7 @@ Nilai yang diambil adalah nilai terbaik (MAX) yang pernah dicapai pengguna pada 
 #### Contoh Request
 
 ```bash
-# Hasil semua pengguna di kursus tertentu
+# Hasil semua pengguna di kursus tertentu berdasarkan courseid
 curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   -d "wstoken=TOKEN_ANDA" \
   -d "wsfunction=local_hrms_get_course_results" \
@@ -347,6 +348,14 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   -d "apikey=APIKEY_ANDA" \
   -d "courseid=12" \
   -d "userid=0"
+
+# Hasil semua pengguna di kursus tertentu berdasarkan idnumber
+curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
+  -d "wstoken=TOKEN_ANDA" \
+  -d "wsfunction=local_hrms_get_course_results" \
+  -d "moodlewsrestformat=json" \
+  -d "apikey=APIKEY_ANDA" \
+  -d "idnumber=TRAIN-2026-001"
 
 # Hasil pengguna tertentu di kursus tertentu
 curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
@@ -1011,11 +1020,12 @@ class HrmsClient
         return $this->call('local_hrms_get_course_participants', ['courseid' => $courseId, 'idnumber' => $idnumber]);
     }
 
-    public function getCourseResults(int $courseId = 0, int $userId = 0): array
+    public function getCourseResults(int $courseId = 0, int $userId = 0, string $idnumber = ''): array
     {
         return $this->call('local_hrms_get_course_results', [
             'courseid' => $courseId,
             'userid'   => $userId,
+            'idnumber' => $idnumber,
         ]);
     }
 
@@ -1145,8 +1155,8 @@ class HrmsClient:
     def get_course_participants(self, course_id: int = 0, idnumber: str = ''):
         return self._call('local_hrms_get_course_participants', courseid=course_id, idnumber=idnumber)
 
-    def get_course_results(self, course_id: int = 0, user_id: int = 0):
-        return self._call('local_hrms_get_course_results', courseid=course_id, userid=user_id)
+    def get_course_results(self, course_id: int = 0, user_id: int = 0, idnumber: str = ''):
+        return self._call('local_hrms_get_course_results', courseid=course_id, userid=user_id, idnumber=idnumber)
 
     def get_users(self, status: str = 'all'):
         return self._call('local_hrms_get_users', status=status)
@@ -1253,8 +1263,8 @@ class HrmsClient {
 
   getActiveCourses(courseId = 0, idnumber = '')         { return this.call('local_hrms_get_active_courses', { courseid: courseId, idnumber }); }
   getCourseParticipants(courseId = 0, idnumber = '') { return this.call('local_hrms_get_course_participants', { courseid: courseId, idnumber }); }
-  getCourseResults(courseId = 0, userId = 0) {
-    return this.call('local_hrms_get_course_results', { courseid: courseId, userid: userId });
+  getCourseResults(courseId = 0, userId = 0, idnumber = '') {
+    return this.call('local_hrms_get_course_results', { courseid: courseId, userid: userId, idnumber });
   }
   getUsers(status = 'all')                { return this.call('local_hrms_get_users', { status }); }
   createCourse(data)                       { return this.call('local_hrms_create_course', data); }
@@ -1371,8 +1381,8 @@ class Hrms_client
     public function get_course_participants($course_id = 0, $idnumber = '') {
         return $this->call('local_hrms_get_course_participants', ['courseid' => (int)$course_id, 'idnumber' => $idnumber]);
     }
-    public function get_course_results($course_id = 0, $user_id = 0) {
-        return $this->call('local_hrms_get_course_results', ['courseid' => (int)$course_id, 'userid' => (int)$user_id]);
+    public function get_course_results($course_id = 0, $user_id = 0, $idnumber = '') {
+        return $this->call('local_hrms_get_course_results', ['courseid' => (int)$course_id, 'userid' => (int)$user_id, 'idnumber' => $idnumber]);
     }
     public function get_users($status = 'all')                   { return $this->call('local_hrms_get_users', ['status' => $status]); }
     public function set_user_suspension($suspended, $user_id = 0, $email = '') {
