@@ -382,6 +382,10 @@ class local_hrms_external extends external_api {
 
     /**
      * Get quiz score based on custom field 'jenis_quiz'
+     *
+     * NOTE: This method is currently unused but retained for future use.
+     * It may be called if pre-test/post-test score retrieval is needed again.
+     *
      * @param int $userid User ID
      * @param int $courseid Course ID
      * @param string $type Type of quiz (pre or post)
