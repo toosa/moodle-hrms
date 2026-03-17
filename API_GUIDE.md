@@ -24,6 +24,7 @@
    - [WRITE — Update Data Pengguna](#49-local_hrms_update_user)
    - [WRITE — Enrol Pengguna ke Kursus](#410-local_hrms_enrol_user)
    - [WRITE — Unenrol Pengguna dari Kursus](#411-local_hrms_unenrol_user)
+   - [GET — Progres Kursus](#412-local_hrms_get_course_progress)
 5. [Format Error Response](#5-format-error-response)
 6. [Contoh Implementasi](#6-contoh-implementasi)
    - [cURL / Shell](#61-curl--shell)
@@ -1013,6 +1014,100 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 
 ---
 
+### 4.12 `local_hrms_get_course_progress`
+
+**Tipe**: Read  
+**Deskripsi**: Mengembalikan ringkasan progres belajar per peserta dalam kursus. Progres dihitung berdasarkan jumlah activity yang memiliki completion tracking aktif yang telah diselesaikan dibandingkan total activity. Dapat disaring per kursus (courseid atau idnumber) dan per pengguna.
+
+#### Parameter Request
+
+| Parameter | Tipe | Wajib | Default | Keterangan |
+|-----------|------|-------|---------|------------|
+| `apikey` | string | Ya | — | API key HRMS |
+| `courseid` | int | Tidak** | `0` | ID internal kursus. `0` = gunakan `idnumber` |
+| `idnumber` | string | Tidak** | `""` | Nomor ID kursus. Digunakan jika `courseid` = 0 |
+| `userid` | int | Tidak | `0` | Filter per pengguna. `0` = semua peserta |
+
+\*\* Minimal salah satu dari `courseid` atau `idnumber` diisi untuk menyaring per kursus. Jika keduanya kosong, mengembalikan semua kursus aktif.
+
+#### Response Fields
+
+| Field | Tipe | Keterangan |
+|-------|------|------------|
+| `user_id` | int | ID pengguna |
+| `email` | string | Alamat email |
+| `firstname` | string | Nama depan |
+| `lastname` | string | Nama belakang |
+| `company_name` | string | Nama institusi/perusahaan |
+| `course_id` | int | ID kursus |
+| `course_shortname` | string | Nama pendek kursus |
+| `course_name` | string | Nama lengkap kursus |
+| `modules_total` | int | Total activity dengan completion tracking aktif |
+| `modules_completed` | int | Jumlah activity yang telah diselesaikan |
+| `completion_percentage` | float | Persentase penyelesaian (0–100) |
+| `is_completed` | int | Status penyelesaian kursus: `1` = selesai, `0` = belum |
+| `completion_date` | int | Timestamp penyelesaian kursus. `0` = belum selesai |
+
+#### Contoh Request
+
+```bash
+# Progres semua peserta di kursus tertentu (by courseid)
+curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
+  -d "wstoken=TOKEN_ANDA" \
+  -d "wsfunction=local_hrms_get_course_progress" \
+  -d "moodlewsrestformat=json" \
+  -d "apikey=APIKEY_ANDA" \
+  -d "courseid=12"
+
+# Progres semua peserta di kursus tertentu (by idnumber)
+curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
+  -d "wstoken=TOKEN_ANDA" \
+  -d "wsfunction=local_hrms_get_course_progress" \
+  -d "moodlewsrestformat=json" \
+  -d "apikey=APIKEY_ANDA" \
+  -d "idnumber=TRAIN-2026-001"
+
+# Progres pengguna tertentu di kursus tertentu
+curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
+  -d "wstoken=TOKEN_ANDA" \
+  -d "wsfunction=local_hrms_get_course_progress" \
+  -d "moodlewsrestformat=json" \
+  -d "apikey=APIKEY_ANDA" \
+  -d "courseid=12" \
+  -d "userid=78"
+```
+
+#### Contoh Response
+
+```json
+[
+  {
+    "user_id": 78,
+    "email": "budi.santoso@perusahaan.co.id",
+    "firstname": "Budi",
+    "lastname": "Santoso",
+    "company_name": "PT Contoh Indonesia",
+    "course_id": 12,
+    "course_shortname": "k3-dasar",
+    "course_name": "Pelatihan K3 Dasar",
+    "modules_total": 10,
+    "modules_completed": 7,
+    "completion_percentage": 70.00,
+    "is_completed": 0,
+    "completion_date": 0
+  }
+]
+```
+
+#### Error yang Mungkin Muncul
+
+| Errorcode | Penyebab |
+|-----------|----------|
+| `invalidrecord` | Kursus tidak ditemukan (berdasarkan `idnumber`) |
+| `invalidapikey` | API key salah |
+
+---
+
 ## 5. Format Error Response
 
 Seluruh error dikembalikan dalam format JSON berikut:
@@ -1113,6 +1208,10 @@ call_api "local_hrms_enrol_user" \
 # Unenrol pengguna dari kursus
 call_api "local_hrms_unenrol_user" \
   -d "email=budi.santoso@perusahaan.co.id" \
+  -d "idnumber=TRAIN-2026-001"
+
+# Progres belajar peserta kursus
+call_api "local_hrms_get_course_progress" \
   -d "idnumber=TRAIN-2026-001"
 ```
 
@@ -1245,6 +1344,15 @@ class HrmsClient
             'idnumber' => $idnumber,
         ]);
     }
+
+    public function getCourseProgress(int $courseId = 0, string $idnumber = '', int $userId = 0): array
+    {
+        return $this->call('local_hrms_get_course_progress', [
+            'courseid' => $courseId,
+            'idnumber' => $idnumber,
+            'userid'   => $userId,
+        ]);
+    }
 }
 
 // --- Penggunaan ---
@@ -1307,6 +1415,12 @@ echo "Enrol: {$enrol['message']}\n";
 // Unenrol pengguna dari kursus
 $unenrol = $client->unenrolUser(0, 'budi.santoso@perusahaan.co.id', 0, 'TRAIN-2026-001');
 echo "Unenrol: {$unenrol['message']}\n";
+
+// Progres belajar peserta kursus
+$progress = $client->getCourseProgress(0, 'TRAIN-2026-001');
+foreach ($progress as $p) {
+    echo "{$p['firstname']} {$p['lastname']}: {$p['completion_percentage']}%\n";
+}
 ```
 
 ---
@@ -1374,6 +1488,10 @@ class HrmsClient:
         return self._call('local_hrms_unenrol_user',
                           userid=user_id, email=email, courseid=course_id, idnumber=idnumber)
 
+    def get_course_progress(self, course_id: int = 0, idnumber: str = '', user_id: int = 0):
+        return self._call('local_hrms_get_course_progress',
+                          courseid=course_id, idnumber=idnumber, userid=user_id)
+
 
 # --- Penggunaan ---
 client = HrmsClient(
@@ -1430,6 +1548,11 @@ print(f"Enrol: {enrol['message']}")
 # Unenrol pengguna dari kursus
 unenrol = client.unenrol_user(email='budi.santoso@perusahaan.co.id', idnumber='TRAIN-2026-001')
 print(f"Unenrol: {unenrol['message']}")
+
+# Progres belajar peserta kursus
+progress = client.get_course_progress(idnumber='TRAIN-2026-001')
+for p in progress:
+    print(f"{p['firstname']} {p['lastname']}: {p['completion_percentage']}%")
 ```
 
 ---
@@ -1484,6 +1607,9 @@ class HrmsClient {
   unenrolUser({ userId = 0, email = '', courseId = 0, idnumber = '' } = {}) {
     return this.call('local_hrms_unenrol_user', { userid: userId, email, courseid: courseId, idnumber });
   }
+  getCourseProgress(courseId = 0, idnumber = '', userId = 0) {
+    return this.call('local_hrms_get_course_progress', { courseid: courseId, idnumber, userid: userId });
+  }
 }
 
 // --- Penggunaan ---
@@ -1530,6 +1656,10 @@ console.log('Enrol:', enrol.message);
 // Unenrol pengguna dari kursus
 const unenrol = await client.unenrolUser({ email: 'budi.santoso@perusahaan.co.id', idnumber: 'TRAIN-2026-001' });
 console.log('Unenrol:', unenrol.message);
+
+// Progres belajar peserta kursus
+const progress = await client.getCourseProgress(0, 'TRAIN-2026-001');
+progress.forEach(p => console.log(`${p.firstname} ${p.lastname}: ${p.completion_percentage}%`));
 ```
 
 ---
@@ -1628,6 +1758,13 @@ class Hrms_client
             'idnumber' => $idnumber,
         ]);
     }
+    public function get_course_progress($course_id = 0, $idnumber = '', $user_id = 0) {
+        return $this->call('local_hrms_get_course_progress', [
+            'courseid' => (int)$course_id,
+            'idnumber' => $idnumber,
+            'userid'   => (int)$user_id,
+        ]);
+    }
 }
 ```
 
@@ -1680,6 +1817,7 @@ class Hrms_client
 | `local_hrms_update_user` | `update_user()` | write | `moodle/user:update` |
 | `local_hrms_enrol_user` | `enrol_user()` | write | `enrol/manual:enrol` |
 | `local_hrms_unenrol_user` | `unenrol_user()` | write | `enrol/manual:unenrol` |
+| `local_hrms_get_course_progress` | `get_course_progress()` | read | — |
 
 ### Service yang Tersedia
 
