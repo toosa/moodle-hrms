@@ -181,7 +181,7 @@ class local_hrms_external extends external_api {
         $sql = "SELECT CONCAT(u.id, '-', c.id) as id,
                        u.id as user_id, u.email, u.firstname, u.lastname, 
                        COALESCE(u.institution, '') as company_name,
-                       c.id as course_id, c.shortname, c.fullname as course_name,
+                       c.id as course_id, c.idnumber as course_idnumber, c.shortname, c.fullname as course_name,
                        ue.timecreated as enrollment_date,
                        COALESCE((
                            SELECT r.shortname
@@ -225,6 +225,7 @@ class local_hrms_external extends external_api {
                 'lastname' => $participant->lastname,
                 'company_name' => $participant->company_name ?: '',
                 'course_id' => $participant->course_id,
+                'course_idnumber' => $participant->course_idnumber ?: '',
                 'course_shortname' => $participant->shortname,
                 'course_name' => $participant->course_name,
                 'enrollment_date' => $participant->enrollment_date,
@@ -248,6 +249,7 @@ class local_hrms_external extends external_api {
                 'lastname' => new external_value(PARAM_TEXT, 'User last name'),
                 'company_name' => new external_value(PARAM_TEXT, 'Company name'),
                 'course_id' => new external_value(PARAM_INT, 'Course ID'),
+                'course_idnumber' => new external_value(PARAM_TEXT, 'Course ID number'),
                 'course_shortname' => new external_value(PARAM_TEXT, 'Course short name'),
                 'course_name' => new external_value(PARAM_TEXT, 'Course name'),
                 'enrollment_date' => new external_value(PARAM_INT, 'Enrollment date'),

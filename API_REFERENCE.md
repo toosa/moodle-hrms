@@ -111,6 +111,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `lastname` | string | Nama belakang |
 | `company_name` | string | Nama institusi/perusahaan |
 | `course_id` | int | ID kursus |
+| `course_idnumber` | string | Nomor ID kursus |
 | `course_shortname` | string | Nama pendek kursus |
 | `course_name` | string | Nama lengkap kursus |
 | `enrollment_date` | int | Tanggal pendaftaran (Unix timestamp) |
@@ -138,6 +139,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
     "lastname": "Santoso",
     "company_name": "PT Contoh Indonesia",
     "course_id": 12,
+    "course_idnumber": "TRAIN-2026-001",
     "course_shortname": "k3-dasar",
     "course_name": "Pelatihan K3 Dasar",
     "enrollment_date": 1740873600,
