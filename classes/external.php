@@ -318,7 +318,14 @@ class local_hrms_external extends external_api {
                 WHERE u.deleted = 0 
                 AND u.confirmed = 1
                 AND c.id != :siteid
-                AND c.visible = 1";
+                AND c.visible = 1
+                AND EXISTS (
+                    SELECT 1
+                    FROM {role_assignments} ra
+                    JOIN {context} ctx ON ctx.id = ra.contextid AND ctx.contextlevel = 50
+                    JOIN {role} r ON r.id = ra.roleid AND r.shortname = 'student'
+                    WHERE ra.userid = u.id AND ctx.instanceid = c.id
+                )";
 
         $sqlparams = ['siteid' => SITEID];
 
