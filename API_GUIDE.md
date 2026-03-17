@@ -385,7 +385,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 ### 4.4 `local_hrms_get_users`
 
 **Tipe**: Read  
-**Deskripsi**: Mengembalikan daftar pengguna Moodle. Dapat disaring berdasarkan status akun (aktif / suspended / semua).
+**Deskripsi**: Mengembalikan daftar pengguna Moodle. Dapat disaring berdasarkan status akun (aktif / suspended / semua) dan/atau berdasarkan alamat email.
 
 #### Parameter Request
 
@@ -393,6 +393,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 |-----------|------|-------|---------|------------|
 | `apikey` | string | Ya | — | API key HRMS |
 | `status` | string | Tidak | `all` | Filter status: `all`, `active`, `suspended` |
+| `email` | string | Tidak | `""` | Filter berdasarkan alamat email (exact match). Kosong = semua pengguna |
 
 #### Response Fields
 
@@ -403,6 +404,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `email` | string | Alamat email |
 | `firstname` | string | Nama depan |
 | `lastname` | string | Nama belakang |
+| `institution` | string | Nama institusi/perusahaan |
 | `suspended` | int | Status: `0` = aktif, `1` = suspended |
 | `timecreated` | int | Waktu akun dibuat (Unix timestamp) |
 | `lastlogin` | int | Waktu login terakhir (Unix timestamp). `0` = belum pernah login |
@@ -425,6 +427,14 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   -d "moodlewsrestformat=json" \
   -d "apikey=APIKEY_ANDA" \
   -d "status=active"
+
+# Filter berdasarkan email
+curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
+  -d "wstoken=TOKEN_ANDA" \
+  -d "wsfunction=local_hrms_get_users" \
+  -d "moodlewsrestformat=json" \
+  -d "apikey=APIKEY_ANDA" \
+  -d "email=budi.santoso@perusahaan.co.id"
 ```
 
 #### Contoh Response
@@ -437,6 +447,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
     "email": "budi.santoso@perusahaan.co.id",
     "firstname": "Budi",
     "lastname": "Santoso",
+    "institution": "PT Maju Bersama",
     "suspended": 0,
     "timecreated": 1735689600,
     "lastlogin": 1743033600
@@ -1291,9 +1302,9 @@ class HrmsClient
         ]);
     }
 
-    public function getUsers(string $status = 'all'): array
+    public function getUsers(string $status = 'all', string $email = ''): array
     {
-        return $this->call('local_hrms_get_users', ['status' => $status]);
+        return $this->call('local_hrms_get_users', ['status' => $status, 'email' => $email]);
     }
 
     public function setUserSuspension(int $userId = 0, string $email = '', int $suspended = 1): array
@@ -1464,8 +1475,8 @@ class HrmsClient:
     def get_course_results(self, course_id: int = 0, user_id: int = 0, idnumber: str = ''):
         return self._call('local_hrms_get_course_results', courseid=course_id, userid=user_id, idnumber=idnumber)
 
-    def get_users(self, status: str = 'all'):
-        return self._call('local_hrms_get_users', status=status)
+    def get_users(self, status: str = 'all', email: str = ''):
+        return self._call('local_hrms_get_users', status=status, email=email)
 
     def set_user_suspension(self, suspended: int, user_id: int = 0, email: str = ''):
         return self._call('local_hrms_set_user_suspension',
@@ -1598,7 +1609,7 @@ class HrmsClient {
   getCourseResults(courseId = 0, userId = 0, idnumber = '') {
     return this.call('local_hrms_get_course_results', { courseid: courseId, userid: userId, idnumber });
   }
-  getUsers(status = 'all')                { return this.call('local_hrms_get_users', { status }); }
+  getUsers(status = 'all', email = '')     { return this.call('local_hrms_get_users', { status, email }); }
   createCourse(data)                       { return this.call('local_hrms_create_course', data); }
   updateCourse(idnumber, changes)          {
     return this.call('local_hrms_update_course', { idnumber, ...changes });
@@ -1737,7 +1748,7 @@ class Hrms_client
     public function get_course_results($course_id = 0, $user_id = 0, $idnumber = '') {
         return $this->call('local_hrms_get_course_results', ['courseid' => (int)$course_id, 'userid' => (int)$user_id, 'idnumber' => $idnumber]);
     }
-    public function get_users($status = 'all')                   { return $this->call('local_hrms_get_users', ['status' => $status]); }
+    public function get_users($status = 'all', $email = '')       { return $this->call('local_hrms_get_users', ['status' => $status, 'email' => $email]); }
     public function set_user_suspension($suspended, $user_id = 0, $email = '') {
         return $this->call('local_hrms_set_user_suspension', ['userid' => (int)$user_id, 'email' => $email, 'suspended' => (int)$suspended]);
     }

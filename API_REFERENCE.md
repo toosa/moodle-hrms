@@ -302,7 +302,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 ## 5. `local_hrms_get_users`
 
 **Tipe**: Read  
-**Deskripsi**: Mengembalikan daftar pengguna Moodle. Dapat disaring berdasarkan status akun (aktif / suspended / semua).
+**Deskripsi**: Mengembalikan daftar pengguna Moodle. Dapat disaring berdasarkan status akun (aktif / suspended / semua) dan/atau berdasarkan alamat email.
 
 #### Parameter Request
 
@@ -310,6 +310,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 |-----------|------|-------|---------|------------|
 | `apikey` | string | Ya | — | API key HRMS |
 | `status` | string | Tidak | `all` | Filter status: `all`, `active`, `suspended` |
+| `email` | string | Tidak | `""` | Filter berdasarkan alamat email (exact match). Kosong = semua pengguna |
 
 #### Response Fields
 
@@ -320,6 +321,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `email` | string | Alamat email |
 | `firstname` | string | Nama depan |
 | `lastname` | string | Nama belakang |
+| `institution` | string | Nama institusi/perusahaan |
 | `suspended` | int | Status: `0` = aktif, `1` = suspended |
 | `timecreated` | int | Waktu akun dibuat (Unix timestamp) |
 | `lastlogin` | int | Waktu login terakhir (Unix timestamp). `0` = belum pernah login |
@@ -327,12 +329,21 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 #### Contoh Request
 
 ```bash
+# Filter by status
 curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   -d "wstoken=TOKEN_ANDA" \
   -d "wsfunction=local_hrms_get_users" \
   -d "moodlewsrestformat=json" \
   -d "apikey=APIKEY_ANDA" \
   -d "status=active"
+
+# Filter by email
+curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
+  -d "wstoken=TOKEN_ANDA" \
+  -d "wsfunction=local_hrms_get_users" \
+  -d "moodlewsrestformat=json" \
+  -d "apikey=APIKEY_ANDA" \
+  -d "email=budi.santoso@perusahaan.co.id"
 ```
 
 #### Contoh Response
@@ -345,6 +356,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
     "email": "budi.santoso@perusahaan.co.id",
     "firstname": "Budi",
     "lastname": "Santoso",
+    "institution": "PT Maju Bersama",
     "suspended": 0,
     "timecreated": 1735689600,
     "lastlogin": 1743033600

@@ -592,8 +592,9 @@ class local_hrms_external extends external_api {
      */
     public static function get_users_parameters() {
         return new external_function_parameters([
-            'apikey' => new external_value(PARAM_TEXT, 'API key for authentication'),
-            'status' => new external_value(PARAM_ALPHA, 'Filter by status: all, active, suspended', VALUE_OPTIONAL, 'all'),
+            'apikey'  => new external_value(PARAM_TEXT,  'API key for authentication'),
+            'status'  => new external_value(PARAM_ALPHA, 'Filter by status: all, active, suspended', VALUE_OPTIONAL, 'all'),
+            'email'   => new external_value(PARAM_EMAIL, 'Filter by exact email address', VALUE_OPTIONAL, ''),
         ]);
     }
 
@@ -601,14 +602,16 @@ class local_hrms_external extends external_api {
      * Get list of users with optional suspension filter
      * @param string $apikey API key
      * @param string $status Filter: 'all' | 'active' | 'suspended'
+     * @param string $email  Filter by exact email address (empty = all)
      * @return array List of users
      */
-    public static function get_users($apikey, $status = 'all') {
+    public static function get_users($apikey, $status = 'all', $email = '') {
         global $DB;
 
         $params = self::validate_parameters(self::get_users_parameters(), [
-            'apikey' => $apikey,
-            'status' => $status,
+            'apikey'  => $apikey,
+            'status'  => $status,
+            'email'   => $email,
         ]);
 
         if (!self::validate_api_key($params['apikey'])) {
@@ -632,7 +635,13 @@ class local_hrms_external extends external_api {
             $where .= ' AND u.suspended = 1';
         }
 
+        if (!empty($params['email'])) {
+            $where .= ' AND u.email = :email';
+            $sqlparams['email'] = $params['email'];
+        }
+
         $sql = "SELECT u.id, u.username, u.email, u.firstname, u.lastname,
+                       COALESCE(u.institution, '') as institution,
                        u.suspended, u.timecreated, u.lastlogin
                 FROM {user} u
                 WHERE {$where}
@@ -648,6 +657,7 @@ class local_hrms_external extends external_api {
                 'email'       => $user->email,
                 'firstname'   => $user->firstname,
                 'lastname'    => $user->lastname,
+                'institution' => $user->institution ?: '',
                 'suspended'   => (int) $user->suspended,
                 'timecreated' => (int) $user->timecreated,
                 'lastlogin'   => (int) $user->lastlogin,
@@ -669,6 +679,7 @@ class local_hrms_external extends external_api {
                 'email'       => new external_value(PARAM_EMAIL, 'User email'),
                 'firstname'   => new external_value(PARAM_TEXT,  'First name'),
                 'lastname'    => new external_value(PARAM_TEXT,  'Last name'),
+                'institution' => new external_value(PARAM_TEXT,  'Institution / company name'),
                 'suspended'   => new external_value(PARAM_INT,   'Suspended status (1=suspended, 0=active)'),
                 'timecreated' => new external_value(PARAM_INT,   'Account creation timestamp'),
                 'lastlogin'   => new external_value(PARAM_INT,   'Last login timestamp'),
@@ -1553,10 +1564,11 @@ class local_hrms_external extends external_api {
      */
     public static function get_course_progress_parameters() {
         return new external_function_parameters([
-            'apikey'   => new external_value(PARAM_TEXT, 'API key for authentication'),
-            'courseid' => new external_value(PARAM_INT,  'Course ID (0 = identify by idnumber)', VALUE_OPTIONAL, 0),
-            'idnumber' => new external_value(PARAM_TEXT, 'Course ID number (if courseid = 0)',   VALUE_OPTIONAL, ''),
-            'userid'   => new external_value(PARAM_INT,  'User ID filter (0 = all users)',        VALUE_OPTIONAL, 0),
+            'apikey'   => new external_value(PARAM_TEXT,  'API key for authentication'),
+            'courseid' => new external_value(PARAM_INT,   'Course ID (0 = identify by idnumber)', VALUE_OPTIONAL, 0),
+            'idnumber' => new external_value(PARAM_TEXT,  'Course ID number (if courseid = 0)',   VALUE_OPTIONAL, ''),
+            'userid'   => new external_value(PARAM_INT,   'User ID filter (0 = all users)',        VALUE_OPTIONAL, 0),
+            'email'    => new external_value(PARAM_EMAIL, 'Filter by exact user email address',   VALUE_OPTIONAL, ''),
         ]);
     }
 
@@ -1566,9 +1578,10 @@ class local_hrms_external extends external_api {
      * @param int    $courseid Course ID (0 = use idnumber)
      * @param string $idnumber Course ID number (if courseid = 0)
      * @param int    $userid   User ID filter (0 = all users)
+     * @param string $email    Filter by exact user email address (empty = all users)
      * @return array Progress records
      */
-    public static function get_course_progress($apikey, $courseid = 0, $idnumber = '', $userid = 0) {
+    public static function get_course_progress($apikey, $courseid = 0, $idnumber = '', $userid = 0, $email = '') {
         global $DB;
 
         $params = self::validate_parameters(self::get_course_progress_parameters(), [
@@ -1576,6 +1589,7 @@ class local_hrms_external extends external_api {
             'courseid' => $courseid,
             'idnumber' => $idnumber,
             'userid'   => $userid,
+            'email'    => $email,
         ]);
 
         if (!self::validate_api_key($params['apikey'])) {
@@ -1602,6 +1616,9 @@ class local_hrms_external extends external_api {
         if ($params['userid'] > 0) {
             $usercondition = ' AND u.id = :userid';
             $sqlparams['userid'] = $params['userid'];
+        } else if (!empty($params['email'])) {
+            $usercondition = ' AND u.email = :email';
+            $sqlparams['email'] = $params['email'];
         }
 
         // Main query: one row per enrolled user per course.
