@@ -1041,9 +1041,11 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `apikey` | string | Ya | — | API key HRMS |
 | `courseid` | int | Tidak** | `0` | ID internal kursus. `0` = gunakan `idnumber` |
 | `idnumber` | string | Tidak** | `""` | Nomor ID kursus. Digunakan jika `courseid` = 0 |
-| `userid` | int | Tidak | `0` | Filter per pengguna. `0` = semua peserta |
+| `userid` | int | Tidak | `0` | Filter per pengguna berdasarkan ID. `0` = semua peserta |
+| `email` | string | Tidak | `""` | Filter per pengguna berdasarkan email (exact match). Kosong = semua peserta |
 
 \*\* Minimal salah satu dari `courseid` atau `idnumber` diisi untuk menyaring per kursus. Jika keduanya kosong, mengembalikan semua kursus aktif.
+> `userid` dan `email` bersifat alternatif — jika `userid` > 0 maka `email` diabaikan.
 
 #### Response Fields
 
@@ -1082,7 +1084,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   -d "apikey=APIKEY_ANDA" \
   -d "idnumber=TRAIN-2026-001"
 
-# Progres pengguna tertentu di kursus tertentu
+# Progres pengguna tertentu di kursus tertentu (by userid)
 curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   -d "wstoken=TOKEN_ANDA" \
   -d "wsfunction=local_hrms_get_course_progress" \
@@ -1090,6 +1092,15 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   -d "apikey=APIKEY_ANDA" \
   -d "courseid=12" \
   -d "userid=78"
+
+# Progres pengguna tertentu di kursus tertentu (by email)
+curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
+  -d "wstoken=TOKEN_ANDA" \
+  -d "wsfunction=local_hrms_get_course_progress" \
+  -d "moodlewsrestformat=json" \
+  -d "apikey=APIKEY_ANDA" \
+  -d "courseid=12" \
+  -d "email=budi.santoso@perusahaan.co.id"
 ```
 
 #### Contoh Response
@@ -1360,12 +1371,13 @@ class HrmsClient
         ]);
     }
 
-    public function getCourseProgress(int $courseId = 0, string $idnumber = '', int $userId = 0): array
+    public function getCourseProgress(int $courseId = 0, string $idnumber = '', int $userId = 0, string $email = ''): array
     {
         return $this->call('local_hrms_get_course_progress', [
             'courseid' => $courseId,
             'idnumber' => $idnumber,
             'userid'   => $userId,
+            'email'    => $email,
         ]);
     }
 }
@@ -1503,9 +1515,9 @@ class HrmsClient:
         return self._call('local_hrms_unenrol_user',
                           userid=user_id, email=email, courseid=course_id, idnumber=idnumber)
 
-    def get_course_progress(self, course_id: int = 0, idnumber: str = '', user_id: int = 0):
+    def get_course_progress(self, course_id: int = 0, idnumber: str = '', user_id: int = 0, email: str = ''):
         return self._call('local_hrms_get_course_progress',
-                          courseid=course_id, idnumber=idnumber, userid=user_id)
+                          courseid=course_id, idnumber=idnumber, userid=user_id, email=email)
 
 
 # --- Penggunaan ---
@@ -1622,8 +1634,8 @@ class HrmsClient {
   unenrolUser({ userId = 0, email = '', courseId = 0, idnumber = '' } = {}) {
     return this.call('local_hrms_unenrol_user', { userid: userId, email, courseid: courseId, idnumber });
   }
-  getCourseProgress(courseId = 0, idnumber = '', userId = 0) {
-    return this.call('local_hrms_get_course_progress', { courseid: courseId, idnumber, userid: userId });
+  getCourseProgress(courseId = 0, idnumber = '', userId = 0, email = '') {
+    return this.call('local_hrms_get_course_progress', { courseid: courseId, idnumber, userid: userId, email });
   }
 }
 
@@ -1773,11 +1785,12 @@ class Hrms_client
             'idnumber' => $idnumber,
         ]);
     }
-    public function get_course_progress($course_id = 0, $idnumber = '', $user_id = 0) {
+    public function get_course_progress($course_id = 0, $idnumber = '', $user_id = 0, $email = '') {
         return $this->call('local_hrms_get_course_progress', [
             'courseid' => (int)$course_id,
             'idnumber' => $idnumber,
             'userid'   => (int)$user_id,
+            'email'    => $email,
         ]);
     }
 }

@@ -225,9 +225,11 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `apikey` | string | Ya | — | API key HRMS |
 | `courseid` | int | Tidak** | `0` | ID internal kursus. `0` = gunakan `idnumber` |
 | `idnumber` | string | Tidak** | `""` | Nomor ID kursus. Digunakan jika `courseid` = 0 |
-| `userid` | int | Tidak | `0` | Filter per pengguna. `0` = semua peserta |
+| `userid` | int | Tidak | `0` | Filter per pengguna berdasarkan ID. `0` = semua peserta |
+| `email` | string | Tidak | `""` | Filter per pengguna berdasarkan email (exact match). Kosong = semua peserta |
 
 \*\* Minimal salah satu dari `courseid` atau `idnumber` diisi untuk menyaring per kursus. Jika keduanya kosong, mengembalikan semua kursus aktif.
+> `userid` dan `email` bersifat alternatif — jika `userid` > 0 maka `email` diabaikan.
 
 #### Response Fields
 
@@ -258,7 +260,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   -d "apikey=APIKEY_ANDA" \
   -d "idnumber=TRAIN-2026-001"
 
-# Progres pengguna tertentu
+# Progres pengguna tertentu (by userid)
 curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   -d "wstoken=TOKEN_ANDA" \
   -d "wsfunction=local_hrms_get_course_progress" \
@@ -266,6 +268,15 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   -d "apikey=APIKEY_ANDA" \
   -d "courseid=12" \
   -d "userid=78"
+
+# Progres pengguna tertentu (by email)
+curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
+  -d "wstoken=TOKEN_ANDA" \
+  -d "wsfunction=local_hrms_get_course_progress" \
+  -d "moodlewsrestformat=json" \
+  -d "apikey=APIKEY_ANDA" \
+  -d "courseid=12" \
+  -d "email=budi.santoso@perusahaan.co.id"
 ```
 
 #### Contoh Response
