@@ -5,6 +5,8 @@
 **Protocol**: REST (JSON)  
 **Last Updated**: March 2026
 
+**Develop by: PT Digitos Multimedia Synergy**
+
 ---
 
 ## Daftar Isi
