@@ -1321,4 +1321,373 @@ class local_hrms_external extends external_api {
         ]);
     }
 
+    /**
+     * Returns description of method parameters for enrol_user
+     * @return external_function_parameters
+     */
+    public static function enrol_user_parameters() {
+        return new external_function_parameters([
+            'apikey'   => new external_value(PARAM_TEXT,  'API key for authentication'),
+            'userid'   => new external_value(PARAM_INT,   'User ID (0 = identify by email)',          VALUE_OPTIONAL, 0),
+            'email'    => new external_value(PARAM_EMAIL, 'User email (if userid = 0)',               VALUE_OPTIONAL, ''),
+            'courseid' => new external_value(PARAM_INT,   'Course ID (0 = identify by idnumber)',     VALUE_OPTIONAL, 0),
+            'idnumber' => new external_value(PARAM_TEXT,  'Course ID number (if courseid = 0)',       VALUE_OPTIONAL, ''),
+            'roleid'   => new external_value(PARAM_INT,   'Role ID (0 = default student role)',       VALUE_OPTIONAL, 0),
+        ]);
+    }
+
+    /**
+     * Enrol a user into a course using the manual enrolment plugin
+     * @param string $apikey
+     * @param int    $userid   User ID (0 = use email)
+     * @param string $email    User email (if userid = 0)
+     * @param int    $courseid Course ID (0 = use idnumber)
+     * @param string $idnumber Course ID number (if courseid = 0)
+     * @param int    $roleid   Role ID (0 = default role from the enrol instance, typically student)
+     * @return array Result
+     */
+    public static function enrol_user($apikey, $userid = 0, $email = '', $courseid = 0, $idnumber = '', $roleid = 0) {
+        global $DB;
+
+        $params = self::validate_parameters(self::enrol_user_parameters(), [
+            'apikey'   => $apikey,
+            'userid'   => $userid,
+            'email'    => $email,
+            'courseid' => $courseid,
+            'idnumber' => $idnumber,
+            'roleid'   => $roleid,
+        ]);
+
+        if (!self::validate_api_key($params['apikey'])) {
+            throw new moodle_exception('invalidapikey', 'local_hrms');
+        }
+
+        $context = context_system::instance();
+        self::validate_context($context);
+
+        // Resolve user.
+        $user = null;
+        if ($params['userid'] > 0) {
+            $user = $DB->get_record('user', ['id' => $params['userid'], 'deleted' => 0]);
+        } else if (!empty($params['email'])) {
+            $user = $DB->get_record('user', ['email' => $params['email'], 'deleted' => 0]);
+        }
+        if (!$user) {
+            throw new moodle_exception('invaliduser', 'error');
+        }
+
+        // Resolve course.
+        if ($params['courseid'] > 0) {
+            $course = $DB->get_record('course', ['id' => $params['courseid']], '*', MUST_EXIST);
+        } else if (!empty($params['idnumber'])) {
+            $course = $DB->get_record('course', ['idnumber' => $params['idnumber']], '*', MUST_EXIST);
+        } else {
+            throw new moodle_exception('missingparam', 'error', '', 'courseid or idnumber');
+        }
+
+        if ($course->id == SITEID) {
+            throw new moodle_exception('invalidcourseid', 'error');
+        }
+
+        // Get manual enrol plugin.
+        $enrolplugin = enrol_get_plugin('manual');
+        if (!$enrolplugin) {
+            throw new moodle_exception('enrolnotinstalled', 'enrol', '', 'manual');
+        }
+
+        // Find or create the manual enrol instance for this course.
+        $instances = enrol_get_instances($course->id, true);
+        $manualinstance = null;
+        foreach ($instances as $instance) {
+            if ($instance->enrol === 'manual') {
+                $manualinstance = $instance;
+                break;
+            }
+        }
+        if (!$manualinstance) {
+            $instanceid = $enrolplugin->add_default_instance($course);
+            $manualinstance = $DB->get_record('enrol', ['id' => $instanceid], '*', MUST_EXIST);
+        }
+
+        // Resolve role: use provided roleid or fallback to the instance's default role.
+        $finalroleid = $params['roleid'] > 0 ? $params['roleid'] : (int) $manualinstance->roleid;
+
+        // Enrol user (idempotent; Moodle updates the enrolment if the user is already enrolled).
+        $enrolplugin->enrol_user($manualinstance, $user->id, $finalroleid);
+
+        return [
+            'success'  => 1,
+            'userid'   => (int) $user->id,
+            'courseid' => (int) $course->id,
+            'roleid'   => $finalroleid,
+            'message'  => 'User enrolled successfully',
+        ];
+    }
+
+    /**
+     * Returns description of method result value for enrol_user
+     * @return external_description
+     */
+    public static function enrol_user_returns() {
+        return new external_single_structure([
+            'success'  => new external_value(PARAM_INT,  'Operation success (1)'),
+            'userid'   => new external_value(PARAM_INT,  'User ID'),
+            'courseid' => new external_value(PARAM_INT,  'Course ID'),
+            'roleid'   => new external_value(PARAM_INT,  'Role ID used for enrolment'),
+            'message'  => new external_value(PARAM_TEXT, 'Result message'),
+        ]);
+    }
+
+    /**
+     * Returns description of method parameters for unenrol_user
+     * @return external_function_parameters
+     */
+    public static function unenrol_user_parameters() {
+        return new external_function_parameters([
+            'apikey'   => new external_value(PARAM_TEXT,  'API key for authentication'),
+            'userid'   => new external_value(PARAM_INT,   'User ID (0 = identify by email)',      VALUE_OPTIONAL, 0),
+            'email'    => new external_value(PARAM_EMAIL, 'User email (if userid = 0)',           VALUE_OPTIONAL, ''),
+            'courseid' => new external_value(PARAM_INT,   'Course ID (0 = identify by idnumber)', VALUE_OPTIONAL, 0),
+            'idnumber' => new external_value(PARAM_TEXT,  'Course ID number (if courseid = 0)',   VALUE_OPTIONAL, ''),
+        ]);
+    }
+
+    /**
+     * Unenrol a user from a course (removes all enrolment instances)
+     * @param string $apikey
+     * @param int    $userid   User ID (0 = use email)
+     * @param string $email    User email (if userid = 0)
+     * @param int    $courseid Course ID (0 = use idnumber)
+     * @param string $idnumber Course ID number (if courseid = 0)
+     * @return array Result
+     */
+    public static function unenrol_user($apikey, $userid = 0, $email = '', $courseid = 0, $idnumber = '') {
+        global $DB;
+
+        $params = self::validate_parameters(self::unenrol_user_parameters(), [
+            'apikey'   => $apikey,
+            'userid'   => $userid,
+            'email'    => $email,
+            'courseid' => $courseid,
+            'idnumber' => $idnumber,
+        ]);
+
+        if (!self::validate_api_key($params['apikey'])) {
+            throw new moodle_exception('invalidapikey', 'local_hrms');
+        }
+
+        $context = context_system::instance();
+        self::validate_context($context);
+
+        // Resolve user.
+        $user = null;
+        if ($params['userid'] > 0) {
+            $user = $DB->get_record('user', ['id' => $params['userid'], 'deleted' => 0]);
+        } else if (!empty($params['email'])) {
+            $user = $DB->get_record('user', ['email' => $params['email'], 'deleted' => 0]);
+        }
+        if (!$user) {
+            throw new moodle_exception('invaliduser', 'error');
+        }
+
+        // Resolve course.
+        if ($params['courseid'] > 0) {
+            $course = $DB->get_record('course', ['id' => $params['courseid']], '*', MUST_EXIST);
+        } else if (!empty($params['idnumber'])) {
+            $course = $DB->get_record('course', ['idnumber' => $params['idnumber']], '*', MUST_EXIST);
+        } else {
+            throw new moodle_exception('missingparam', 'error', '', 'courseid or idnumber');
+        }
+
+        if ($course->id == SITEID) {
+            throw new moodle_exception('invalidcourseid', 'error');
+        }
+
+        // Verify user is currently enrolled.
+        if (!is_enrolled(context_course::instance($course->id), $user->id)) {
+            throw new moodle_exception('notenrolled', 'enrol');
+        }
+
+        // Unenrol from all enrol instances in the course.
+        $instances = enrol_get_instances($course->id, false);
+        foreach ($instances as $instance) {
+            $enrolplugin = enrol_get_plugin($instance->enrol);
+            if ($enrolplugin) {
+                $enrolplugin->unenrol_user($instance, $user->id);
+            }
+        }
+
+        return [
+            'success'  => 1,
+            'userid'   => (int) $user->id,
+            'courseid' => (int) $course->id,
+            'message'  => 'User unenrolled successfully',
+        ];
+    }
+
+    /**
+     * Returns description of method result value for unenrol_user
+     * @return external_description
+     */
+    public static function unenrol_user_returns() {
+        return new external_single_structure([
+            'success'  => new external_value(PARAM_INT,  'Operation success (1)'),
+            'userid'   => new external_value(PARAM_INT,  'User ID'),
+            'courseid' => new external_value(PARAM_INT,  'Course ID'),
+            'message'  => new external_value(PARAM_TEXT, 'Result message'),
+        ]);
+    }
+
+    /**
+     * Returns description of method parameters for get_course_progress
+     * @return external_function_parameters
+     */
+    public static function get_course_progress_parameters() {
+        return new external_function_parameters([
+            'apikey'   => new external_value(PARAM_TEXT, 'API key for authentication'),
+            'courseid' => new external_value(PARAM_INT,  'Course ID (0 = identify by idnumber)', VALUE_OPTIONAL, 0),
+            'idnumber' => new external_value(PARAM_TEXT, 'Course ID number (if courseid = 0)',   VALUE_OPTIONAL, ''),
+            'userid'   => new external_value(PARAM_INT,  'User ID filter (0 = all users)',        VALUE_OPTIONAL, 0),
+        ]);
+    }
+
+    /**
+     * Get course progress summary per enrolled user
+     * @param string $apikey   API key
+     * @param int    $courseid Course ID (0 = use idnumber)
+     * @param string $idnumber Course ID number (if courseid = 0)
+     * @param int    $userid   User ID filter (0 = all users)
+     * @return array Progress records
+     */
+    public static function get_course_progress($apikey, $courseid = 0, $idnumber = '', $userid = 0) {
+        global $DB;
+
+        $params = self::validate_parameters(self::get_course_progress_parameters(), [
+            'apikey'   => $apikey,
+            'courseid' => $courseid,
+            'idnumber' => $idnumber,
+            'userid'   => $userid,
+        ]);
+
+        if (!self::validate_api_key($params['apikey'])) {
+            throw new moodle_exception('invalidapikey', 'local_hrms');
+        }
+
+        $context = context_system::instance();
+        self::validate_context($context);
+
+        // Resolve course filter.
+        $sqlparams = ['siteid' => SITEID];
+        $coursecondition = '';
+
+        if ($params['courseid'] > 0) {
+            $coursecondition = ' AND c.id = :courseid';
+            $sqlparams['courseid'] = $params['courseid'];
+        } else if (!empty($params['idnumber'])) {
+            $course = $DB->get_record('course', ['idnumber' => $params['idnumber']], 'id', MUST_EXIST);
+            $coursecondition = ' AND c.id = :courseid';
+            $sqlparams['courseid'] = $course->id;
+        }
+
+        $usercondition = '';
+        if ($params['userid'] > 0) {
+            $usercondition = ' AND u.id = :userid';
+            $sqlparams['userid'] = $params['userid'];
+        }
+
+        // Main query: one row per enrolled user per course.
+        // modules_total  = visible course modules that have completion tracking enabled.
+        // modules_completed = those modules the user has marked complete (completionstate >= 1).
+        $sql = "SELECT CONCAT(u.id, '-', c.id) as id,
+                       u.id as user_id, u.email, u.firstname, u.lastname,
+                       COALESCE(u.institution, '') as company_name,
+                       c.id as course_id, c.shortname, c.fullname as course_name,
+                       COALESCE(cc.timecompleted, 0) as timecompleted,
+                       (
+                           SELECT COUNT(*)
+                           FROM {course_modules} cm
+                           WHERE cm.course = c.id
+                             AND cm.completion > 0
+                             AND cm.visible = 1
+                             AND cm.deletioninprogress = 0
+                       ) as modules_total,
+                       (
+                           SELECT COUNT(*)
+                           FROM {course_modules} cm
+                           JOIN {course_modules_completion} cmc
+                               ON cmc.coursemoduleid = cm.id
+                              AND cmc.userid = u.id
+                              AND cmc.completionstate >= 1
+                           WHERE cm.course = c.id
+                             AND cm.completion > 0
+                             AND cm.visible = 1
+                             AND cm.deletioninprogress = 0
+                       ) as modules_completed
+                FROM {user} u
+                JOIN {user_enrolments} ue ON u.id = ue.userid
+                JOIN {enrol} e ON ue.enrolid = e.id
+                JOIN {course} c ON e.courseid = c.id
+                LEFT JOIN {course_completions} cc ON u.id = cc.userid AND c.id = cc.course
+                WHERE u.deleted = 0
+                AND u.confirmed = 1
+                AND c.id != :siteid
+                AND c.visible = 1
+                {$coursecondition}
+                {$usercondition}
+                ORDER BY c.fullname, u.lastname, u.firstname";
+
+        $rows = $DB->get_records_sql($sql, $sqlparams);
+
+        $result = [];
+        foreach ($rows as $row) {
+            $modules_total     = (int) $row->modules_total;
+            $modules_completed = (int) $row->modules_completed;
+            $percentage = $modules_total > 0
+                ? round($modules_completed / $modules_total * 100, 2)
+                : 0.00;
+
+            $result[] = [
+                'user_id'              => (int) $row->user_id,
+                'email'                => $row->email,
+                'firstname'            => $row->firstname,
+                'lastname'             => $row->lastname,
+                'company_name'         => $row->company_name ?: '',
+                'course_id'            => (int) $row->course_id,
+                'course_shortname'     => $row->shortname,
+                'course_name'          => $row->course_name,
+                'modules_total'        => $modules_total,
+                'modules_completed'    => $modules_completed,
+                'completion_percentage'=> $percentage,
+                'is_completed'         => $row->timecompleted ? 1 : 0,
+                'completion_date'      => (int) $row->timecompleted,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Returns description of method result value for get_course_progress
+     * @return external_description
+     */
+    public static function get_course_progress_returns() {
+        return new external_multiple_structure(
+            new external_single_structure([
+                'user_id'               => new external_value(PARAM_INT,   'User ID'),
+                'email'                 => new external_value(PARAM_EMAIL, 'User email'),
+                'firstname'             => new external_value(PARAM_TEXT,  'First name'),
+                'lastname'              => new external_value(PARAM_TEXT,  'Last name'),
+                'company_name'          => new external_value(PARAM_TEXT,  'Company / institution name'),
+                'course_id'             => new external_value(PARAM_INT,   'Course ID'),
+                'course_shortname'      => new external_value(PARAM_TEXT,  'Course short name'),
+                'course_name'           => new external_value(PARAM_TEXT,  'Course full name'),
+                'modules_total'         => new external_value(PARAM_INT,   'Total activities with completion tracking enabled'),
+                'modules_completed'     => new external_value(PARAM_INT,   'Activities completed by the user'),
+                'completion_percentage' => new external_value(PARAM_FLOAT, 'Completion percentage (0-100)'),
+                'is_completed'          => new external_value(PARAM_INT,   'Course completion status: 1 = completed, 0 = in progress'),
+                'completion_date'       => new external_value(PARAM_INT,   'Course completion timestamp (0 if not yet completed)'),
+            ])
+        );
+    }
+
 }

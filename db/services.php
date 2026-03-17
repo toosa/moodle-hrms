@@ -116,6 +116,33 @@ $functions = [
         'ajax'        => true,
         'capabilities' => 'moodle/user:update',
     ],
+    'local_hrms_enrol_user' => [
+        'classname'   => 'local_hrms_external',
+        'methodname'  => 'enrol_user',
+        'classpath'   => 'local/hrms/classes/external.php',
+        'description' => 'Enrol a user into a course (manual enrolment) by userid/email and courseid/idnumber',
+        'type'        => 'write',
+        'ajax'        => true,
+        'capabilities' => 'enrol/manual:enrol',
+    ],
+    'local_hrms_unenrol_user' => [
+        'classname'   => 'local_hrms_external',
+        'methodname'  => 'unenrol_user',
+        'classpath'   => 'local/hrms/classes/external.php',
+        'description' => 'Unenrol a user from a course by userid/email and courseid/idnumber',
+        'type'        => 'write',
+        'ajax'        => true,
+        'capabilities' => 'enrol/manual:unenrol',
+    ],
+    'local_hrms_get_course_progress' => [
+        'classname'   => 'local_hrms_external',
+        'methodname'  => 'get_course_progress',
+        'classpath'   => 'local/hrms/classes/external.php',
+        'description' => 'Get course progress summary (modules completed / total) per enrolled user',
+        'type'        => 'read',
+        'ajax'        => true,
+        'capabilities' => '',
+    ],
 ];
 
 // Define services to install as pre-build services.
@@ -132,6 +159,9 @@ $services = [
             'local_hrms_update_course',
             'local_hrms_create_user',
             'local_hrms_update_user',
+            'local_hrms_enrol_user',
+            'local_hrms_unenrol_user',
+            'local_hrms_get_course_progress',
         ],
         'restrictedusers' => 0,
         'enabled' => 1,

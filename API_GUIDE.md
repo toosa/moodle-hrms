@@ -22,6 +22,8 @@
    - [WRITE — Update Setting Kursus](#47-local_hrms_update_course)
    - [WRITE — Buat Pengguna Baru](#48-local_hrms_create_user)
    - [WRITE — Update Data Pengguna](#49-local_hrms_update_user)
+   - [WRITE — Enrol Pengguna ke Kursus](#410-local_hrms_enrol_user)
+   - [WRITE — Unenrol Pengguna dari Kursus](#411-local_hrms_unenrol_user)
 5. [Format Error Response](#5-format-error-response)
 6. [Contoh Implementasi](#6-contoh-implementasi)
    - [cURL / Shell](#61-curl--shell)
@@ -850,6 +852,167 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 
 ---
 
+### 4.10 `local_hrms_enrol_user`
+
+**Tipe**: Write  
+**Kapabilitas**: `enrol/manual:enrol`  
+**Deskripsi**: Mendaftarkan (enrol) pengguna ke dalam sebuah kursus menggunakan **manual enrolment plugin**. Pengguna dapat diidentifikasi dengan `userid` atau `email`; kursus dapat diidentifikasi dengan `courseid` atau `idnumber`. Operasi ini idempoten — jika pengguna sudah terdaftar, enrolment-nya akan diperbarui.
+
+#### Parameter Request
+
+| Parameter | Tipe | Wajib | Default | Keterangan |
+|-----------|------|-------|---------|------------|
+| `apikey` | string | Ya | — | API key HRMS |
+| `userid` | int | Tidak* | `0` | ID pengguna. `0` = gunakan `email` |
+| `email` | string | Tidak* | `""` | Alamat email pengguna. Digunakan jika `userid` = 0 |
+| `courseid` | int | Tidak** | `0` | ID internal kursus. `0` = gunakan `idnumber` |
+| `idnumber` | string | Tidak** | `""` | Nomor ID kursus. Digunakan jika `courseid` = 0 |
+| `roleid` | int | Tidak | `0` | ID role yang diberikan. `0` = gunakan role default dari enrol instance (biasanya `student`) |
+
+\* Minimal salah satu dari `userid` atau `email` harus diisi.  
+\*\* Minimal salah satu dari `courseid` atau `idnumber` harus diisi.
+
+#### Response Fields
+
+| Field | Tipe | Keterangan |
+|-------|------|------------|
+| `success` | int | `1` = berhasil |
+| `userid` | int | ID pengguna yang dienrol |
+| `courseid` | int | ID kursus tujuan |
+| `roleid` | int | ID role yang digunakan |
+| `message` | string | Pesan konfirmasi |
+
+#### Contoh Request
+
+```bash
+# Enrol berdasarkan userid dan courseid
+curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
+  -d "wstoken=TOKEN_ANDA" \
+  -d "wsfunction=local_hrms_enrol_user" \
+  -d "moodlewsrestformat=json" \
+  -d "apikey=APIKEY_ANDA" \
+  -d "userid=78" \
+  -d "courseid=12"
+
+# Enrol berdasarkan email dan idnumber kursus
+curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
+  -d "wstoken=TOKEN_ANDA" \
+  -d "wsfunction=local_hrms_enrol_user" \
+  -d "moodlewsrestformat=json" \
+  -d "apikey=APIKEY_ANDA" \
+  -d "email=budi.santoso@perusahaan.co.id" \
+  -d "idnumber=TRAIN-2026-001"
+
+# Enrol dengan role tertentu (misal role teacher, roleid=3)
+curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
+  -d "wstoken=TOKEN_ANDA" \
+  -d "wsfunction=local_hrms_enrol_user" \
+  -d "moodlewsrestformat=json" \
+  -d "apikey=APIKEY_ANDA" \
+  -d "userid=78" \
+  -d "courseid=12" \
+  -d "roleid=3"
+```
+
+#### Contoh Response
+
+```json
+{
+  "success": 1,
+  "userid": 78,
+  "courseid": 12,
+  "roleid": 5,
+  "message": "User enrolled successfully"
+}
+```
+
+#### Error yang Mungkin Muncul
+
+| Errorcode | Penyebab |
+|-----------|----------|
+| `invaliduser` | Pengguna tidak ditemukan |
+| `invalidrecord` | Kursus tidak ditemukan (berdasarkan `idnumber`) |
+| `invalidcourseid` | `courseid` merujuk ke site course |
+| `missingparam` | Tidak ada `courseid` maupun `idnumber` yang dikirim |
+| `enrolnotinstalled` | Plugin enrolment manual tidak tersedia |
+| `invalidapikey` | API key salah |
+
+---
+
+### 4.11 `local_hrms_unenrol_user`
+
+**Tipe**: Write  
+**Kapabilitas**: `enrol/manual:unenrol`  
+**Deskripsi**: Mengeluarkan (unenrol) pengguna dari sebuah kursus. Pengguna dan kursus dapat diidentifikasi dengan `userid`/`email` dan `courseid`/`idnumber`. Operasi ini menghapus pengguna dari **semua** enrol instance di kursus tersebut.
+
+#### Parameter Request
+
+| Parameter | Tipe | Wajib | Default | Keterangan |
+|-----------|------|-------|---------|------------|
+| `apikey` | string | Ya | — | API key HRMS |
+| `userid` | int | Tidak* | `0` | ID pengguna. `0` = gunakan `email` |
+| `email` | string | Tidak* | `""` | Alamat email pengguna. Digunakan jika `userid` = 0 |
+| `courseid` | int | Tidak** | `0` | ID internal kursus. `0` = gunakan `idnumber` |
+| `idnumber` | string | Tidak** | `""` | Nomor ID kursus. Digunakan jika `courseid` = 0 |
+
+\* Minimal salah satu dari `userid` atau `email` harus diisi.  
+\*\* Minimal salah satu dari `courseid` atau `idnumber` harus diisi.
+
+#### Response Fields
+
+| Field | Tipe | Keterangan |
+|-------|------|------------|
+| `success` | int | `1` = berhasil |
+| `userid` | int | ID pengguna yang di-unenrol |
+| `courseid` | int | ID kursus |
+| `message` | string | Pesan konfirmasi |
+
+#### Contoh Request
+
+```bash
+# Unenrol berdasarkan userid dan courseid
+curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
+  -d "wstoken=TOKEN_ANDA" \
+  -d "wsfunction=local_hrms_unenrol_user" \
+  -d "moodlewsrestformat=json" \
+  -d "apikey=APIKEY_ANDA" \
+  -d "userid=78" \
+  -d "courseid=12"
+
+# Unenrol berdasarkan email dan idnumber kursus
+curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
+  -d "wstoken=TOKEN_ANDA" \
+  -d "wsfunction=local_hrms_unenrol_user" \
+  -d "moodlewsrestformat=json" \
+  -d "apikey=APIKEY_ANDA" \
+  -d "email=budi.santoso@perusahaan.co.id" \
+  -d "idnumber=TRAIN-2026-001"
+```
+
+#### Contoh Response
+
+```json
+{
+  "success": 1,
+  "userid": 78,
+  "courseid": 12,
+  "message": "User unenrolled successfully"
+}
+```
+
+#### Error yang Mungkin Muncul
+
+| Errorcode | Penyebab |
+|-----------|----------|
+| `invaliduser` | Pengguna tidak ditemukan |
+| `invalidrecord` | Kursus tidak ditemukan (berdasarkan `idnumber`) |
+| `invalidcourseid` | `courseid` merujuk ke site course |
+| `notenrolled` | Pengguna tidak terdaftar di kursus tersebut |
+| `missingparam` | Tidak ada `courseid` maupun `idnumber` yang dikirim |
+| `invalidapikey` | API key salah |
+
+---
+
 ## 5. Format Error Response
 
 Seluruh error dikembalikan dalam format JSON berikut:
@@ -875,6 +1038,8 @@ Seluruh error dikembalikan dalam format JSON berikut:
 | `emailalreadyused` | Email sudah digunakan pengguna lain | Gunakan alamat email yang berbeda |
 | `usernameexists` | Username sudah digunakan pengguna lain | Gunakan username yang berbeda |
 | `invaliduser` | Pengguna tidak ditemukan | Periksa `userid` atau `email` yang dikirim |
+| `notenrolled` | Pengguna tidak terdaftar di kursus tersebut | Pastikan user sudah enrolled sebelum di-unenrol |
+| `missingparam` | Parameter `courseid` dan `idnumber` keduanya kosong | Kirim salah satu parameter kursus |
 
 ---
 
@@ -939,6 +1104,16 @@ call_api "local_hrms_update_user" \
   -d "firstname=Siti" \
   -d "lastname=Rahayu Baru" \
   -d "institution=PT Baru Indonesia"
+
+# Enrol pengguna ke kursus
+call_api "local_hrms_enrol_user" \
+  -d "userid=78" \
+  -d "idnumber=TRAIN-2026-001"
+
+# Unenrol pengguna dari kursus
+call_api "local_hrms_unenrol_user" \
+  -d "email=budi.santoso@perusahaan.co.id" \
+  -d "idnumber=TRAIN-2026-001"
 ```
 
 ---
@@ -1049,6 +1224,27 @@ class HrmsClient
     {
         return $this->call('local_hrms_update_user', $data);
     }
+
+    public function enrolUser(int $userId = 0, string $email = '', int $courseId = 0, string $idnumber = '', int $roleId = 0): array
+    {
+        return $this->call('local_hrms_enrol_user', [
+            'userid'   => $userId,
+            'email'    => $email,
+            'courseid' => $courseId,
+            'idnumber' => $idnumber,
+            'roleid'   => $roleId,
+        ]);
+    }
+
+    public function unenrolUser(int $userId = 0, string $email = '', int $courseId = 0, string $idnumber = ''): array
+    {
+        return $this->call('local_hrms_unenrol_user', [
+            'userid'   => $userId,
+            'email'    => $email,
+            'courseid' => $courseId,
+            'idnumber' => $idnumber,
+        ]);
+    }
 }
 
 // --- Penggunaan ---
@@ -1103,6 +1299,14 @@ $updatedUser = $client->updateUser([
     'institution' => 'PT Baru Indonesia',
 ]);
 echo "Pengguna diupdate: {$updatedUser['institution']}\n";
+
+// Enrol pengguna ke kursus
+$enrol = $client->enrolUser(78, '', 0, 'TRAIN-2026-001');
+echo "Enrol: {$enrol['message']}\n";
+
+// Unenrol pengguna dari kursus
+$unenrol = $client->unenrolUser(0, 'budi.santoso@perusahaan.co.id', 0, 'TRAIN-2026-001');
+echo "Unenrol: {$unenrol['message']}\n";
 ```
 
 ---
@@ -1161,6 +1365,15 @@ class HrmsClient:
     def update_user(self, **kwargs):
         return self._call('local_hrms_update_user', **kwargs)
 
+    def enrol_user(self, user_id: int = 0, email: str = '', course_id: int = 0, idnumber: str = '', role_id: int = 0):
+        return self._call('local_hrms_enrol_user',
+                          userid=user_id, email=email, courseid=course_id,
+                          idnumber=idnumber, roleid=role_id)
+
+    def unenrol_user(self, user_id: int = 0, email: str = '', course_id: int = 0, idnumber: str = ''):
+        return self._call('local_hrms_unenrol_user',
+                          userid=user_id, email=email, courseid=course_id, idnumber=idnumber)
+
 
 # --- Penggunaan ---
 client = HrmsClient(
@@ -1209,6 +1422,14 @@ updated_user = client.update_user(
     institution='PT Baru Indonesia',
 )
 print(f"Pengguna diupdate: {updated_user['institution']}")
+
+# Enrol pengguna ke kursus
+enrol = client.enrol_user(user_id=78, idnumber='TRAIN-2026-001')
+print(f"Enrol: {enrol['message']}")
+
+# Unenrol pengguna dari kursus
+unenrol = client.unenrol_user(email='budi.santoso@perusahaan.co.id', idnumber='TRAIN-2026-001')
+print(f"Unenrol: {unenrol['message']}")
 ```
 
 ---
@@ -1257,6 +1478,12 @@ class HrmsClient {
   }
   createUser(data)                         { return this.call('local_hrms_create_user', data); }
   updateUser(data)                         { return this.call('local_hrms_update_user', data); }
+  enrolUser({ userId = 0, email = '', courseId = 0, idnumber = '', roleId = 0 } = {}) {
+    return this.call('local_hrms_enrol_user', { userid: userId, email, courseid: courseId, idnumber, roleid: roleId });
+  }
+  unenrolUser({ userId = 0, email = '', courseId = 0, idnumber = '' } = {}) {
+    return this.call('local_hrms_unenrol_user', { userid: userId, email, courseid: courseId, idnumber });
+  }
 }
 
 // --- Penggunaan ---
@@ -1295,6 +1522,14 @@ const updatedUser = await client.updateUser({
   institution: 'PT Baru Indonesia',
 });
 console.log('User diupdate:', updatedUser.institution);
+
+// Enrol pengguna ke kursus
+const enrol = await client.enrolUser({ userId: 78, idnumber: 'TRAIN-2026-001' });
+console.log('Enrol:', enrol.message);
+
+// Unenrol pengguna dari kursus
+const unenrol = await client.unenrolUser({ email: 'budi.santoso@perusahaan.co.id', idnumber: 'TRAIN-2026-001' });
+console.log('Unenrol:', unenrol.message);
 ```
 
 ---
@@ -1376,6 +1611,23 @@ class Hrms_client
     public function update_course($idnumber, $changes)           { return $this->call('local_hrms_update_course', array_merge(['idnumber' => $idnumber], $changes)); }
     public function create_user($data)                           { return $this->call('local_hrms_create_user', $data); }
     public function update_user($data)                           { return $this->call('local_hrms_update_user', $data); }
+    public function enrol_user($user_id = 0, $email = '', $course_id = 0, $idnumber = '', $role_id = 0) {
+        return $this->call('local_hrms_enrol_user', [
+            'userid'   => (int)$user_id,
+            'email'    => $email,
+            'courseid' => (int)$course_id,
+            'idnumber' => $idnumber,
+            'roleid'   => (int)$role_id,
+        ]);
+    }
+    public function unenrol_user($user_id = 0, $email = '', $course_id = 0, $idnumber = '') {
+        return $this->call('local_hrms_unenrol_user', [
+            'userid'   => (int)$user_id,
+            'email'    => $email,
+            'courseid' => (int)$course_id,
+            'idnumber' => $idnumber,
+        ]);
+    }
 }
 ```
 
@@ -1426,6 +1678,8 @@ class Hrms_client
 | `local_hrms_update_course` | `update_course()` | write | `moodle/course:update` |
 | `local_hrms_create_user` | `create_user()` | write | `moodle/user:create` |
 | `local_hrms_update_user` | `update_user()` | write | `moodle/user:update` |
+| `local_hrms_enrol_user` | `enrol_user()` | write | `enrol/manual:enrol` |
+| `local_hrms_unenrol_user` | `unenrol_user()` | write | `enrol/manual:unenrol` |
 
 ### Service yang Tersedia
 
