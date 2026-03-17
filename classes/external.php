@@ -855,10 +855,13 @@ class local_hrms_external extends external_api {
             throw new moodle_exception('shortnametaken', 'error', '', $params['shortname']);
         }
 
+        // Default idnumber to shortname if not provided.
+        $idnumber = $params['idnumber'] !== '' ? $params['idnumber'] : $params['shortname'];
+
         $coursedata = (object) [
             'fullname'      => $params['fullname'],
             'shortname'     => $params['shortname'],
-            'idnumber'      => $params['idnumber'],
+            'idnumber'      => $idnumber,
             'summary'       => $params['summary'],
             'summaryformat' => FORMAT_HTML,
             'category'      => $params['categoryid'],
