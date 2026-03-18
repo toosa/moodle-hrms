@@ -305,7 +305,7 @@ class local_hrms_external extends external_api {
         $sql = "SELECT CONCAT(u.id, '-', c.id) as id,
                        u.id as user_id, u.email, u.firstname, u.lastname,
                        COALESCE(u.institution, '') as company_name,
-                       c.id as course_id, c.shortname, c.fullname as course_name,
+                       c.id as course_id, c.idnumber as course_idnumber, c.shortname, c.fullname as course_name,
                        cc.timecompleted,
                        COALESCE(gg.finalgrade, 0) as final_grade
                 FROM {user} u
@@ -356,6 +356,7 @@ class local_hrms_external extends external_api {
                 'lastname' => $result->lastname,
                 'company_name' => $result->company_name ?: '',
                 'course_id' => $result->course_id,
+                'course_idnumber' => $result->course_idnumber ?: '',
                 'course_shortname' => $result->shortname,
                 'course_name' => $result->course_name,
                 'final_grade' => round($result->final_grade, 2),
@@ -380,6 +381,7 @@ class local_hrms_external extends external_api {
                 'lastname' => new external_value(PARAM_TEXT, 'User last name'),
                 'company_name' => new external_value(PARAM_TEXT, 'Company name'),
                 'course_id' => new external_value(PARAM_INT, 'Course ID'),
+                'course_idnumber' => new external_value(PARAM_TEXT, 'Course ID number'),
                 'course_shortname' => new external_value(PARAM_TEXT, 'Course short name'),
                 'course_name' => new external_value(PARAM_TEXT, 'Course name'),
                 'final_grade' => new external_value(PARAM_FLOAT, 'Final grade'),

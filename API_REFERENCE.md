@@ -174,6 +174,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `lastname` | string | Nama belakang |
 | `company_name` | string | Nama institusi/perusahaan |
 | `course_id` | int | ID kursus |
+| `course_idnumber` | string | ID number kursus |
 | `course_shortname` | string | Nama pendek kursus |
 | `course_name` | string | Nama lengkap kursus |
 | `final_grade` | float | Nilai akhir kursus |
@@ -202,6 +203,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
     "lastname": "Santoso",
     "company_name": "PT Contoh Indonesia",
     "course_id": 12,
+    "course_idnumber": "TRAIN-2026-001",
     "course_shortname": "k3-dasar",
     "course_name": "Pelatihan K3 Dasar",
     "final_grade": 87.50,
