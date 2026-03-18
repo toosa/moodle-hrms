@@ -433,7 +433,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 
 **Tipe**: Write  
 **Kapabilitas**: `moodle/course:create`  
-**Deskripsi**: Membuat kursus baru di Moodle. `fullname` dan `shortname` bersifat wajib; parameter lain opsional.
+**Deskripsi**: Membuat kursus baru di Moodle. `fullname`, `shortname`, dan `idnumber` bersifat wajib; parameter lain opsional.
 
 #### Parameter Request
 
@@ -442,7 +442,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `apikey` | string | Ya | — | API key HRMS |
 | `fullname` | string | Ya | — | Nama lengkap kursus |
 | `shortname` | string | Ya | — | Nama pendek kursus (harus unik) |
-| `idnumber` | string | Tidak | `""` | Nomor ID kursus (untuk referensi eksternal) |
+| `idnumber` | string | Ya | — | Nomor ID kursus (untuk referensi eksternal, harus unik) |
 | `summary` | string | Tidak | `""` | Deskripsi kursus (mendukung HTML) |
 | `categoryid` | int | Tidak | `1` | ID kategori. Default = kategori pertama |
 | `startdate` | int | Tidak | waktu sekarang | Tanggal mulai (Unix timestamp) |

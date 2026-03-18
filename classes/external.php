@@ -38,8 +38,8 @@ class local_hrms_external extends external_api {
     public static function get_active_courses_parameters() {
         return new external_function_parameters([
             'apikey'   => new external_value(PARAM_TEXT, 'API key for authentication'),
-            'courseid' => new external_value(PARAM_INT,  'Course ID filter', VALUE_OPTIONAL, 0),
-            'idnumber' => new external_value(PARAM_TEXT, 'Course ID number filter', VALUE_OPTIONAL, '')
+            'courseid' => new external_value(PARAM_INT,  'Course ID filter', VALUE_DEFAULT, 0),
+            'idnumber' => new external_value(PARAM_TEXT, 'Course ID number filter', VALUE_DEFAULT, '')
         ]);
     }
 
@@ -145,8 +145,8 @@ class local_hrms_external extends external_api {
     public static function get_course_participants_parameters() {
         return new external_function_parameters([
             'apikey' => new external_value(PARAM_TEXT, 'API key for authentication'),
-            'courseid' => new external_value(PARAM_INT, 'Course ID', VALUE_OPTIONAL, 0),
-            'idnumber' => new external_value(PARAM_TEXT, 'Course ID number', VALUE_OPTIONAL, '')
+            'courseid' => new external_value(PARAM_INT, 'Course ID', VALUE_DEFAULT, 0),
+            'idnumber' => new external_value(PARAM_TEXT, 'Course ID number', VALUE_DEFAULT, '')
         ]);
     }
 
@@ -265,9 +265,9 @@ class local_hrms_external extends external_api {
     public static function get_course_results_parameters() {
         return new external_function_parameters([
             'apikey'   => new external_value(PARAM_TEXT, 'API key for authentication'),
-            'courseid' => new external_value(PARAM_INT,  'Course ID', VALUE_OPTIONAL, 0),
-            'userid'   => new external_value(PARAM_INT,  'User ID', VALUE_OPTIONAL, 0),
-            'idnumber' => new external_value(PARAM_TEXT, 'Course ID number', VALUE_OPTIONAL, '')
+            'courseid' => new external_value(PARAM_INT,  'Course ID', VALUE_DEFAULT, 0),
+            'userid'   => new external_value(PARAM_INT,  'User ID', VALUE_DEFAULT, 0),
+            'idnumber' => new external_value(PARAM_TEXT, 'Course ID number', VALUE_DEFAULT, '')
         ]);
     }
 
@@ -593,8 +593,8 @@ class local_hrms_external extends external_api {
     public static function get_users_parameters() {
         return new external_function_parameters([
             'apikey'  => new external_value(PARAM_TEXT,  'API key for authentication'),
-            'status'  => new external_value(PARAM_ALPHA, 'Filter by status: all, active, suspended', VALUE_OPTIONAL, 'all'),
-            'email'   => new external_value(PARAM_EMAIL, 'Filter by exact email address', VALUE_OPTIONAL, ''),
+            'status'  => new external_value(PARAM_ALPHA, 'Filter by status: all, active, suspended', VALUE_DEFAULT, 'all'),
+            'email'   => new external_value(PARAM_EMAIL, 'Filter by exact email address', VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -704,8 +704,8 @@ class local_hrms_external extends external_api {
     public static function set_user_suspension_parameters() {
         return new external_function_parameters([
             'apikey'    => new external_value(PARAM_TEXT, 'API key for authentication'),
-            'userid'    => new external_value(PARAM_INT, 'User ID', VALUE_OPTIONAL, 0),
-            'email'     => new external_value(PARAM_EMAIL, 'User email', VALUE_OPTIONAL, ''),
+            'userid'    => new external_value(PARAM_INT, 'User ID', VALUE_DEFAULT, 0),
+            'email'     => new external_value(PARAM_EMAIL, 'User email', VALUE_DEFAULT, ''),
             'suspended' => new external_value(PARAM_INT, 'Suspend (1) or unsuspend (0) the user'),
         ]);
     }
@@ -796,13 +796,13 @@ class local_hrms_external extends external_api {
             'apikey'     => new external_value(PARAM_TEXT, 'API key for authentication'),
             'fullname'   => new external_value(PARAM_TEXT, 'Course full name'),
             'shortname'  => new external_value(PARAM_TEXT, 'Course short name'),
-            'idnumber'   => new external_value(PARAM_TEXT, 'Course ID number', VALUE_OPTIONAL, ''),
-            'summary'    => new external_value(PARAM_RAW,  'Course summary', VALUE_OPTIONAL, ''),
-            'categoryid' => new external_value(PARAM_INT,  'Category ID', VALUE_OPTIONAL, 1),
-            'startdate'  => new external_value(PARAM_INT,  'Course start date (unix timestamp)', VALUE_OPTIONAL, 0),
-            'enddate'    => new external_value(PARAM_INT,  'Course end date (unix timestamp)', VALUE_OPTIONAL, 0),
-            'visible'    => new external_value(PARAM_INT,  'Visibility (1=visible, 0=hidden)', VALUE_OPTIONAL, 0),
-            'jp'         => new external_value(PARAM_INT,  'JP custom field value', VALUE_OPTIONAL, 1),
+            'idnumber'   => new external_value(PARAM_TEXT, 'Course ID number'),
+            'summary'    => new external_value(PARAM_RAW,  'Course summary', VALUE_DEFAULT, ''),
+            'categoryid' => new external_value(PARAM_INT,  'Category ID', VALUE_DEFAULT, 1),
+            'startdate'  => new external_value(PARAM_INT,  'Course start date (unix timestamp)', VALUE_DEFAULT, 0),
+            'enddate'    => new external_value(PARAM_INT,  'Course end date (unix timestamp)', VALUE_DEFAULT, 0),
+            'visible'    => new external_value(PARAM_INT,  'Visibility (1=visible, 0=hidden)', VALUE_DEFAULT, 0),
+            'jp'         => new external_value(PARAM_INT,  'JP custom field value', VALUE_DEFAULT, 1),
         ]);
     }
 
@@ -821,7 +821,7 @@ class local_hrms_external extends external_api {
      * @return array Created course info
      */
     public static function create_course(
-        $apikey, $fullname, $shortname, $idnumber = '', $summary = '',
+        $apikey, $fullname, $shortname, $idnumber, $summary = '',
         $categoryid = 1, $startdate = 0, $enddate = 0, $visible = 0, $jp = 1
     ) {
         global $CFG, $DB;
@@ -855,13 +855,10 @@ class local_hrms_external extends external_api {
             throw new moodle_exception('shortnametaken', 'error', '', $params['shortname']);
         }
 
-        // Default idnumber to shortname if not provided.
-        $idnumber = $params['idnumber'] !== '' ? $params['idnumber'] : $params['shortname'];
-
         $coursedata = (object) [
             'fullname'      => $params['fullname'],
             'shortname'     => $params['shortname'],
-            'idnumber'      => $idnumber,
+            'idnumber'      => $params['idnumber'],
             'summary'       => $params['summary'],
             'summaryformat' => FORMAT_HTML,
             'category'      => $params['categoryid'],
@@ -876,10 +873,12 @@ class local_hrms_external extends external_api {
         // Set JP custom field.
         $handler = \core_customfield\handler::get_handler('core_course', 'course');
         $fieldsdata = $handler->get_instance_data($course->id, true);
+        $coursecontext = context_course::instance($course->id);
         foreach ($fieldsdata as $fielddata) {
             if ($fielddata->get_field()->get('shortname') === 'jp') {
-                $fielddata->set('value', $params['jp']);
-                $fielddata->set('valueformat', FORMAT_PLAIN);
+                $fielddata->set('contextid', $coursecontext->id);
+                $fielddata->set('decvalue', (float)$params['jp']);
+                $fielddata->set('value', (string)$params['jp']);
                 $fielddata->save();
                 break;
             }
@@ -924,15 +923,15 @@ class local_hrms_external extends external_api {
         return new external_function_parameters([
             'apikey'       => new external_value(PARAM_TEXT,  'API key for authentication'),
             'idnumber'     => new external_value(PARAM_TEXT,  'Course ID number to identify the course'),
-            'fullname'     => new external_value(PARAM_TEXT,  'New course full name',                     VALUE_OPTIONAL, ''),
-            'shortname'    => new external_value(PARAM_TEXT,  'New course short name',                    VALUE_OPTIONAL, ''),
-            'new_idnumber' => new external_value(PARAM_TEXT,  'New course ID number (rename idnumber)',   VALUE_OPTIONAL, ''),
-            'summary'      => new external_value(PARAM_RAW,   'New course summary',                       VALUE_OPTIONAL, ''),
-            'categoryid'   => new external_value(PARAM_INT,   'New category ID (0 = no change)',          VALUE_OPTIONAL, 0),
-            'startdate'    => new external_value(PARAM_INT,   'New start date unix timestamp (0 = no change)', VALUE_OPTIONAL, 0),
-            'enddate'      => new external_value(PARAM_INT,   'New end date unix timestamp (-1 = no change)',  VALUE_OPTIONAL, -1),
-            'visible'      => new external_value(PARAM_INT,   'Visibility: 1=visible, 0=hidden, -1=no change', VALUE_OPTIONAL, -1),
-            'jp'           => new external_value(PARAM_INT,   'JP custom field value (0 = no change)',    VALUE_OPTIONAL, 0),
+            'fullname'     => new external_value(PARAM_TEXT,  'New course full name',                     VALUE_DEFAULT, ''),
+            'shortname'    => new external_value(PARAM_TEXT,  'New course short name',                    VALUE_DEFAULT, ''),
+            'new_idnumber' => new external_value(PARAM_TEXT,  'New course ID number (rename idnumber)',   VALUE_DEFAULT, ''),
+            'summary'      => new external_value(PARAM_RAW,   'New course summary',                       VALUE_DEFAULT, ''),
+            'categoryid'   => new external_value(PARAM_INT,   'New category ID (0 = no change)',          VALUE_DEFAULT, 0),
+            'startdate'    => new external_value(PARAM_INT,   'New start date unix timestamp (0 = no change)', VALUE_DEFAULT, 0),
+            'enddate'      => new external_value(PARAM_INT,   'New end date unix timestamp (-1 = no change)',  VALUE_DEFAULT, -1),
+            'visible'      => new external_value(PARAM_INT,   'Visibility: 1=visible, 0=hidden, -1=no change', VALUE_DEFAULT, -1),
+            'jp'           => new external_value(PARAM_INT,   'JP custom field value (0 = no change)',    VALUE_DEFAULT, 0),
         ]);
     }
 
@@ -1037,8 +1036,8 @@ class local_hrms_external extends external_api {
             $fieldsdata = $handler->get_instance_data($course->id, true);
             foreach ($fieldsdata as $fielddata) {
                 if ($fielddata->get_field()->get('shortname') === 'jp') {
-                    $fielddata->set('value', $params['jp']);
-                    $fielddata->set('valueformat', FORMAT_PLAIN);
+                    $fielddata->set('decvalue', (float)$params['jp']);
+                    $fielddata->set('value', (string)$params['jp']);
                     $fielddata->save();
                     break;
                 }
@@ -1102,12 +1101,12 @@ class local_hrms_external extends external_api {
             'firstname'   => new external_value(PARAM_TEXT,  'First name'),
             'lastname'    => new external_value(PARAM_TEXT,  'Last name'),
             'password'    => new external_value(PARAM_RAW,   'Plain-text password'),
-            'institution' => new external_value(PARAM_TEXT,  'Institution / company name', VALUE_OPTIONAL, ''),
-            'department'  => new external_value(PARAM_TEXT,  'Department', VALUE_OPTIONAL, ''),
-            'phone1'      => new external_value(PARAM_TEXT,  'Phone number', VALUE_OPTIONAL, ''),
-            'city'        => new external_value(PARAM_TEXT,  'City', VALUE_OPTIONAL, ''),
-            'country'     => new external_value(PARAM_ALPHA, 'Two-letter country code (e.g. ID)', VALUE_OPTIONAL, ''),
-            'auth'        => new external_value(PARAM_PLUGIN, 'Auth plugin (default: manual)', VALUE_OPTIONAL, 'manual'),
+            'institution' => new external_value(PARAM_TEXT,  'Institution / company name', VALUE_DEFAULT, ''),
+            'department'  => new external_value(PARAM_TEXT,  'Department', VALUE_DEFAULT, ''),
+            'phone1'      => new external_value(PARAM_TEXT,  'Phone number', VALUE_DEFAULT, ''),
+            'city'        => new external_value(PARAM_TEXT,  'City', VALUE_DEFAULT, ''),
+            'country'     => new external_value(PARAM_ALPHA, 'Two-letter country code (e.g. ID)', VALUE_DEFAULT, ''),
+            'auth'        => new external_value(PARAM_PLUGIN, 'Auth plugin (default: manual)', VALUE_DEFAULT, 'manual'),
         ]);
     }
 
@@ -1230,12 +1229,12 @@ class local_hrms_external extends external_api {
     public static function update_user_parameters() {
         return new external_function_parameters([
             'apikey'      => new external_value(PARAM_TEXT,  'API key for authentication'),
-            'userid'      => new external_value(PARAM_INT,   'User ID', VALUE_OPTIONAL, 0),
-            'email'       => new external_value(PARAM_EMAIL, 'User email to identify user', VALUE_OPTIONAL, ''),
-            'new_email'   => new external_value(PARAM_EMAIL, 'New email address (empty = no change)', VALUE_OPTIONAL, ''),
-            'firstname'   => new external_value(PARAM_TEXT,  'New first name (empty = no change)', VALUE_OPTIONAL, ''),
-            'lastname'    => new external_value(PARAM_TEXT,  'New last name (empty = no change)', VALUE_OPTIONAL, ''),
-            'institution' => new external_value(PARAM_TEXT,  'New institution/company name (empty = no change)', VALUE_OPTIONAL, ''),
+            'userid'      => new external_value(PARAM_INT,   'User ID', VALUE_DEFAULT, 0),
+            'email'       => new external_value(PARAM_EMAIL, 'User email to identify user', VALUE_DEFAULT, ''),
+            'new_email'   => new external_value(PARAM_EMAIL, 'New email address (empty = no change)', VALUE_DEFAULT, ''),
+            'firstname'   => new external_value(PARAM_TEXT,  'New first name (empty = no change)', VALUE_DEFAULT, ''),
+            'lastname'    => new external_value(PARAM_TEXT,  'New last name (empty = no change)', VALUE_DEFAULT, ''),
+            'institution' => new external_value(PARAM_TEXT,  'New institution/company name (empty = no change)', VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -1351,11 +1350,11 @@ class local_hrms_external extends external_api {
     public static function enrol_user_parameters() {
         return new external_function_parameters([
             'apikey'   => new external_value(PARAM_TEXT,  'API key for authentication'),
-            'userid'   => new external_value(PARAM_INT,   'User ID (0 = identify by email)',          VALUE_OPTIONAL, 0),
-            'email'    => new external_value(PARAM_EMAIL, 'User email (if userid = 0)',               VALUE_OPTIONAL, ''),
-            'courseid' => new external_value(PARAM_INT,   'Course ID (0 = identify by idnumber)',     VALUE_OPTIONAL, 0),
-            'idnumber' => new external_value(PARAM_TEXT,  'Course ID number (if courseid = 0)',       VALUE_OPTIONAL, ''),
-            'roleid'   => new external_value(PARAM_INT,   'Role ID (0 = default student role)',       VALUE_OPTIONAL, 0),
+            'userid'   => new external_value(PARAM_INT,   'User ID (0 = identify by email)',          VALUE_DEFAULT, 0),
+            'email'    => new external_value(PARAM_EMAIL, 'User email (if userid = 0)',               VALUE_DEFAULT, ''),
+            'courseid' => new external_value(PARAM_INT,   'Course ID (0 = identify by idnumber)',     VALUE_DEFAULT, 0),
+            'idnumber' => new external_value(PARAM_TEXT,  'Course ID number (if courseid = 0)',       VALUE_DEFAULT, ''),
+            'roleid'   => new external_value(PARAM_INT,   'Role ID (0 = default student role)',       VALUE_DEFAULT, 0),
         ]);
     }
 
@@ -1468,10 +1467,10 @@ class local_hrms_external extends external_api {
     public static function unenrol_user_parameters() {
         return new external_function_parameters([
             'apikey'   => new external_value(PARAM_TEXT,  'API key for authentication'),
-            'userid'   => new external_value(PARAM_INT,   'User ID (0 = identify by email)',      VALUE_OPTIONAL, 0),
-            'email'    => new external_value(PARAM_EMAIL, 'User email (if userid = 0)',           VALUE_OPTIONAL, ''),
-            'courseid' => new external_value(PARAM_INT,   'Course ID (0 = identify by idnumber)', VALUE_OPTIONAL, 0),
-            'idnumber' => new external_value(PARAM_TEXT,  'Course ID number (if courseid = 0)',   VALUE_OPTIONAL, ''),
+            'userid'   => new external_value(PARAM_INT,   'User ID (0 = identify by email)',      VALUE_DEFAULT, 0),
+            'email'    => new external_value(PARAM_EMAIL, 'User email (if userid = 0)',           VALUE_DEFAULT, ''),
+            'courseid' => new external_value(PARAM_INT,   'Course ID (0 = identify by idnumber)', VALUE_DEFAULT, 0),
+            'idnumber' => new external_value(PARAM_TEXT,  'Course ID number (if courseid = 0)',   VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -1568,10 +1567,10 @@ class local_hrms_external extends external_api {
     public static function get_course_progress_parameters() {
         return new external_function_parameters([
             'apikey'   => new external_value(PARAM_TEXT,  'API key for authentication'),
-            'courseid' => new external_value(PARAM_INT,   'Course ID (0 = identify by idnumber)', VALUE_OPTIONAL, 0),
-            'idnumber' => new external_value(PARAM_TEXT,  'Course ID number (if courseid = 0)',   VALUE_OPTIONAL, ''),
-            'userid'   => new external_value(PARAM_INT,   'User ID filter (0 = all users)',        VALUE_OPTIONAL, 0),
-            'email'    => new external_value(PARAM_EMAIL, 'Filter by exact user email address',   VALUE_OPTIONAL, ''),
+            'courseid' => new external_value(PARAM_INT,   'Course ID (0 = identify by idnumber)', VALUE_DEFAULT, 0),
+            'idnumber' => new external_value(PARAM_TEXT,  'Course ID number (if courseid = 0)',   VALUE_DEFAULT, ''),
+            'userid'   => new external_value(PARAM_INT,   'User ID filter (0 = all users)',        VALUE_DEFAULT, 0),
+            'email'    => new external_value(PARAM_EMAIL, 'Filter by exact user email address',   VALUE_DEFAULT, ''),
         ]);
     }
 
