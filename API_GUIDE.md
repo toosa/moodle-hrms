@@ -817,6 +817,11 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `firstname` | string | Tidak | `""` | Nama depan baru. Kosong = tidak diubah |
 | `lastname` | string | Tidak | `""` | Nama belakang baru. Kosong = tidak diubah |
 | `institution` | string | Tidak | `""` | Nama institusi/perusahaan baru. Kosong = tidak diubah |
+| `department` | string | Tidak | `""` | Departemen baru. Kosong = tidak diubah |
+| `phone1` | string | Tidak | `""` | Nomor telepon baru. Kosong = tidak diubah |
+| `password` | string | Tidak | `""` | Password baru (plain-text). Kosong = tidak diubah |
+| `username` | string | Tidak | `""` | Username baru. Kosong = tidak diubah |
+| `auth` | string | Tidak | `""` | Metode autentikasi baru (misal `manual`, `ldap`). Kosong = tidak diubah |
 
 \* Minimal salah satu dari `userid` atau `email` harus diisi untuk mengidentifikasi pengguna.
 
@@ -830,6 +835,9 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `firstname` | string | Nama depan (setelah update) |
 | `lastname` | string | Nama belakang (setelah update) |
 | `institution` | string | Nama institusi/perusahaan (setelah update) |
+| `department` | string | Departemen (setelah update) |
+| `phone1` | string | Nomor telepon (setelah update) |
+| `auth` | string | Metode autentikasi (setelah update) |
 
 #### Contoh Request
 
@@ -843,7 +851,9 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   -d "userid=95" \
   -d "firstname=Siti" \
   -d "lastname=Rahayu Baru" \
-  -d "institution=PT Baru Indonesia"
+  -d "institution=PT Baru Indonesia" \
+  -d "department=Finance" \
+  -d "phone1=0811914589"
 
 # Ganti email berdasarkan email lama
 curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
@@ -864,7 +874,10 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   "email": "s.rahayu@perusahaan.co.id",
   "firstname": "Siti",
   "lastname": "Rahayu Baru",
-  "institution": "PT Baru Indonesia"
+  "institution": "PT Baru Indonesia",
+  "department": "Finance",
+  "phone1": "0811914589",
+  "auth": "manual"
 }
 ```
 
@@ -893,7 +906,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `email` | string | Tidak* | `""` | Alamat email pengguna. Digunakan jika `userid` = 0 |
 | `courseid` | int | Tidak** | `0` | ID internal kursus. `0` = gunakan `idnumber` |
 | `idnumber` | string | Tidak** | `""` | Nomor ID kursus. Digunakan jika `courseid` = 0 |
-| `roleid` | int | Tidak | `0` | ID role yang diberikan. `0` = gunakan role default dari enrol instance (biasanya `student`) |
+| `role` | string | Tidak | `""` | Shortname role yang diberikan, misal `student`, `teacher`, `editingteacher`. Kosong = gunakan role default dari enrol instance |
 
 \* Minimal salah satu dari `userid` atau `email` harus diisi.  
 \*\* Minimal salah satu dari `courseid` atau `idnumber` harus diisi.
@@ -904,8 +917,10 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 |-------|------|------------|
 | `success` | int | `1` = berhasil |
 | `userid` | int | ID pengguna yang dienrol |
+| `email` | string | Alamat email pengguna |
 | `courseid` | int | ID kursus tujuan |
-| `roleid` | int | ID role yang digunakan |
+| `idnumber` | string | Nomor ID kursus |
+| `role` | string | Shortname role yang digunakan |
 | `message` | string | Pesan konfirmasi |
 
 #### Contoh Request
@@ -929,7 +944,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   -d "email=budi.santoso@perusahaan.co.id" \
   -d "idnumber=TRAIN-2026-001"
 
-# Enrol dengan role tertentu (misal role teacher, roleid=3)
+# Enrol dengan role tertentu (misal teacher)
 curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   -d "wstoken=TOKEN_ANDA" \
   -d "wsfunction=local_hrms_enrol_user" \
@@ -937,7 +952,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   -d "apikey=APIKEY_ANDA" \
   -d "userid=78" \
   -d "courseid=12" \
-  -d "roleid=3"
+  -d "role=teacher"
 ```
 
 #### Contoh Response
@@ -946,8 +961,10 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 {
   "success": 1,
   "userid": 78,
+  "email": "budi.santoso@perusahaan.co.id",
   "courseid": 12,
-  "roleid": 5,
+  "idnumber": "TRAIN-2026-001",
+  "role": "student",
   "message": "User enrolled successfully"
 }
 ```
@@ -961,6 +978,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `invalidcourseid` | `courseid` merujuk ke site course |
 | `missingparam` | Tidak ada `courseid` maupun `idnumber` yang dikirim |
 | `enrolnotinstalled` | Plugin enrolment manual tidak tersedia |
+| `invalidrole` | Shortname role tidak ditemukan |
 | `invalidapikey` | API key salah |
 
 ---
@@ -1360,14 +1378,14 @@ class HrmsClient
         return $this->call('local_hrms_update_user', $data);
     }
 
-    public function enrolUser(int $userId = 0, string $email = '', int $courseId = 0, string $idnumber = '', int $roleId = 0): array
+    public function enrolUser(int $userId = 0, string $email = '', int $courseId = 0, string $idnumber = '', string $role = ''): array
     {
         return $this->call('local_hrms_enrol_user', [
             'userid'   => $userId,
             'email'    => $email,
             'courseid' => $courseId,
             'idnumber' => $idnumber,
-            'roleid'   => $roleId,
+            'role'     => $role,
         ]);
     }
 
@@ -1516,10 +1534,10 @@ class HrmsClient:
     def update_user(self, **kwargs):
         return self._call('local_hrms_update_user', **kwargs)
 
-    def enrol_user(self, user_id: int = 0, email: str = '', course_id: int = 0, idnumber: str = '', role_id: int = 0):
+    def enrol_user(self, user_id: int = 0, email: str = '', course_id: int = 0, idnumber: str = '', role: str = ''):
         return self._call('local_hrms_enrol_user',
                           userid=user_id, email=email, courseid=course_id,
-                          idnumber=idnumber, roleid=role_id)
+                          idnumber=idnumber, role=role)
 
     def unenrol_user(self, user_id: int = 0, email: str = '', course_id: int = 0, idnumber: str = ''):
         return self._call('local_hrms_unenrol_user',
@@ -1638,8 +1656,8 @@ class HrmsClient {
   }
   createUser(data)                         { return this.call('local_hrms_create_user', data); }
   updateUser(data)                         { return this.call('local_hrms_update_user', data); }
-  enrolUser({ userId = 0, email = '', courseId = 0, idnumber = '', roleId = 0 } = {}) {
-    return this.call('local_hrms_enrol_user', { userid: userId, email, courseid: courseId, idnumber, roleid: roleId });
+  enrolUser({ userId = 0, email = '', courseId = 0, idnumber = '', role = '' } = {}) {
+    return this.call('local_hrms_enrol_user', { userid: userId, email, courseid: courseId, idnumber, role });
   }
   unenrolUser({ userId = 0, email = '', courseId = 0, idnumber = '' } = {}) {
     return this.call('local_hrms_unenrol_user', { userid: userId, email, courseid: courseId, idnumber });

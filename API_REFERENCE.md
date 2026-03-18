@@ -673,6 +673,11 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `firstname` | string | Tidak | `""` | Nama depan baru. Kosong = tidak diubah |
 | `lastname` | string | Tidak | `""` | Nama belakang baru. Kosong = tidak diubah |
 | `institution` | string | Tidak | `""` | Nama institusi/perusahaan baru. Kosong = tidak diubah |
+| `department` | string | Tidak | `""` | Departemen baru. Kosong = tidak diubah |
+| `phone1` | string | Tidak | `""` | Nomor telepon baru. Kosong = tidak diubah |
+| `password` | string | Tidak | `""` | Password baru (plain-text). Kosong = tidak diubah |
+| `username` | string | Tidak | `""` | Username baru. Kosong = tidak diubah |
+| `auth` | string | Tidak | `""` | Metode autentikasi baru (misal `manual`, `ldap`). Kosong = tidak diubah |
 
 \* Minimal salah satu dari `userid` atau `email` harus diisi.
 
@@ -686,6 +691,9 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `firstname` | string | Nama depan (setelah update) |
 | `lastname` | string | Nama belakang (setelah update) |
 | `institution` | string | Nama institusi/perusahaan (setelah update) |
+| `department` | string | Departemen (setelah update) |
+| `phone1` | string | Nomor telepon (setelah update) |
+| `auth` | string | Metode autentikasi (setelah update) |
 
 #### Contoh Request
 
@@ -698,7 +706,9 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   -d "userid=95" \
   -d "firstname=Siti" \
   -d "lastname=Rahayu Baru" \
-  -d "institution=PT Baru Indonesia"
+  -d "institution=PT Baru Indonesia" \
+  -d "department=Finance" \
+  -d "phone1=0811914589"
 ```
 
 #### Contoh Response
@@ -710,7 +720,10 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   "email": "siti.rahayu@perusahaan.co.id",
   "firstname": "Siti",
   "lastname": "Rahayu Baru",
-  "institution": "PT Baru Indonesia"
+  "institution": "PT Baru Indonesia",
+  "department": "Finance",
+  "phone1": "0811914589",
+  "auth": "manual"
 }
 ```
 
@@ -739,7 +752,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `email` | string | Tidak* | `""` | Alamat email pengguna |
 | `courseid` | int | Tidak** | `0` | ID internal kursus. `0` = gunakan `idnumber` |
 | `idnumber` | string | Tidak** | `""` | Nomor ID kursus |
-| `roleid` | int | Tidak | `0` | ID role. `0` = gunakan role default (biasanya `student`) |
+| `role` | string | Tidak | `""` | Shortname role yang diberikan, misal `student`, `teacher`, `editingteacher`. Kosong = gunakan role default dari enrol instance |
 
 \* Minimal salah satu dari `userid` atau `email` harus diisi.  
 \*\* Minimal salah satu dari `courseid` atau `idnumber` harus diisi.
@@ -750,8 +763,10 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 |-------|------|------------|
 | `success` | int | `1` = berhasil |
 | `userid` | int | ID pengguna yang dienrol |
+| `email` | string | Alamat email pengguna |
 | `courseid` | int | ID kursus tujuan |
-| `roleid` | int | ID role yang digunakan |
+| `idnumber` | string | Nomor ID kursus |
+| `role` | string | Shortname role yang digunakan |
 | `message` | string | Pesan konfirmasi |
 
 #### Contoh Request
@@ -772,8 +787,10 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 {
   "success": 1,
   "userid": 78,
+  "email": "budi.santoso@perusahaan.co.id",
   "courseid": 12,
-  "roleid": 5,
+  "idnumber": "TRAIN-2026-001",
+  "role": "student",
   "message": "User enrolled successfully"
 }
 ```
@@ -787,6 +804,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `invalidcourseid` | `courseid` merujuk ke site course |
 | `missingparam` | Tidak ada `courseid` maupun `idnumber` yang dikirim |
 | `enrolnotinstalled` | Plugin enrolment manual tidak tersedia |
+| `invalidrole` | Shortname role tidak ditemukan |
 | `invalidapikey` | API key salah |
 
 ---

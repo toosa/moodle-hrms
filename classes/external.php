@@ -1245,6 +1245,11 @@ class local_hrms_external extends external_api {
             'firstname'   => new external_value(PARAM_TEXT,  'New first name (empty = no change)', VALUE_DEFAULT, ''),
             'lastname'    => new external_value(PARAM_TEXT,  'New last name (empty = no change)', VALUE_DEFAULT, ''),
             'institution' => new external_value(PARAM_TEXT,  'New institution/company name (empty = no change)', VALUE_DEFAULT, ''),
+            'department'  => new external_value(PARAM_TEXT,     'New department (empty = no change)', VALUE_DEFAULT, ''),
+            'phone1'      => new external_value(PARAM_TEXT,     'New phone number (empty = no change)', VALUE_DEFAULT, ''),
+            'password'    => new external_value(PARAM_RAW,      'New plain-text password (empty = no change)', VALUE_DEFAULT, ''),
+            'username'    => new external_value(PARAM_USERNAME, 'New username (empty = no change)', VALUE_DEFAULT, ''),
+            'auth'        => new external_value(PARAM_TEXT,     'New authentication method e.g. manual, ldap (empty = no change)', VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -1257,11 +1262,18 @@ class local_hrms_external extends external_api {
      * @param string $firstname   New first name (empty = no change)
      * @param string $lastname    New last name (empty = no change)
      * @param string $institution New institution (empty = no change)
+     * @param string $department  New department (empty = no change)
+     * @param string $phone1      New phone number (empty = no change)
+     * @param string $password    New password (empty = no change)
+     * @param string $username    New username (empty = no change)
+     * @param string $auth        New auth method (empty = no change)
      * @return array Updated user info
      */
     public static function update_user(
         $apikey, $userid = 0, $email = '', $new_email = '',
-        $firstname = '', $lastname = '', $institution = ''
+        $firstname = '', $lastname = '', $institution = '',
+        $department = '', $phone1 = '', $password = '',
+        $username = '', $auth = ''
     ) {
         global $CFG, $DB;
         require_once($CFG->dirroot . '/user/lib.php');
@@ -1274,6 +1286,11 @@ class local_hrms_external extends external_api {
             'firstname'   => $firstname,
             'lastname'    => $lastname,
             'institution' => $institution,
+            'department'  => $department,
+            'phone1'      => $phone1,
+            'password'    => $password,
+            'username'    => $username,
+            'auth'        => $auth,
         ]);
 
         if (!self::validate_api_key($params['apikey'])) {
@@ -1314,6 +1331,14 @@ class local_hrms_external extends external_api {
             $updateuser->institution = $params['institution'];
         }
 
+        if ($params['department'] !== '') {
+            $updateuser->department = $params['department'];
+        }
+
+        if ($params['phone1'] !== '') {
+            $updateuser->phone1 = $params['phone1'];
+        }
+
         if ($params['new_email'] !== '') {
             // Check new email is not already in use by another user.
             if ($DB->record_exists_select('user', 'email = :email AND id != :uid AND deleted = 0',
@@ -1323,7 +1348,19 @@ class local_hrms_external extends external_api {
             $updateuser->email = $params['new_email'];
         }
 
-        user_update_user($updateuser, false, true);
+        if ($params['password'] !== '') {
+            $updateuser->password = $params['password'];
+        }
+
+        if ($params['username'] !== '') {
+            $updateuser->username = $params['username'];
+        }
+
+        if ($params['auth'] !== '') {
+            $updateuser->auth = $params['auth'];
+        }
+
+        user_update_user($updateuser, $params['password'] !== '', true);
 
         // Reload updated record.
         $updated = $DB->get_record('user', ['id' => $user->id], '*', MUST_EXIST);
@@ -1335,6 +1372,9 @@ class local_hrms_external extends external_api {
             'firstname'   => $updated->firstname,
             'lastname'    => $updated->lastname,
             'institution' => $updated->institution ?: '',
+            'department'  => $updated->department ?: '',
+            'phone1'      => $updated->phone1 ?: '',
+            'auth'        => $updated->auth ?: '',
         ];
     }
 
@@ -1350,6 +1390,9 @@ class local_hrms_external extends external_api {
             'firstname'   => new external_value(PARAM_TEXT,  'First name (after update)'),
             'lastname'    => new external_value(PARAM_TEXT,  'Last name (after update)'),
             'institution' => new external_value(PARAM_TEXT,  'Institution / company name (after update)'),
+            'department'  => new external_value(PARAM_TEXT,  'Department (after update)'),
+            'phone1'      => new external_value(PARAM_TEXT,  'Phone number (after update)'),
+            'auth'        => new external_value(PARAM_TEXT,  'Authentication method (after update)'),
         ]);
     }
 
@@ -1364,7 +1407,7 @@ class local_hrms_external extends external_api {
             'email'    => new external_value(PARAM_EMAIL, 'User email (if userid = 0)',               VALUE_DEFAULT, ''),
             'courseid' => new external_value(PARAM_INT,   'Course ID (0 = identify by idnumber)',     VALUE_DEFAULT, 0),
             'idnumber' => new external_value(PARAM_TEXT,  'Course ID number (if courseid = 0)',       VALUE_DEFAULT, ''),
-            'roleid'   => new external_value(PARAM_INT,   'Role ID (0 = default student role)',       VALUE_DEFAULT, 0),
+            'role'     => new external_value(PARAM_TEXT,  'Role shortname e.g. student, teacher (empty = default role of enrol instance)', VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -1375,10 +1418,10 @@ class local_hrms_external extends external_api {
      * @param string $email    User email (if userid = 0)
      * @param int    $courseid Course ID (0 = use idnumber)
      * @param string $idnumber Course ID number (if courseid = 0)
-     * @param int    $roleid   Role ID (0 = default role from the enrol instance, typically student)
+     * @param string $role     Role shortname e.g. student, teacher (empty = default role from enrol instance)
      * @return array Result
      */
-    public static function enrol_user($apikey, $userid = 0, $email = '', $courseid = 0, $idnumber = '', $roleid = 0) {
+    public static function enrol_user($apikey, $userid = 0, $email = '', $courseid = 0, $idnumber = '', $role = '') {
         global $DB;
 
         $params = self::validate_parameters(self::enrol_user_parameters(), [
@@ -1387,7 +1430,7 @@ class local_hrms_external extends external_api {
             'email'    => $email,
             'courseid' => $courseid,
             'idnumber' => $idnumber,
-            'roleid'   => $roleid,
+            'role'     => $role,
         ]);
 
         if (!self::validate_api_key($params['apikey'])) {
@@ -1441,8 +1484,17 @@ class local_hrms_external extends external_api {
             $manualinstance = $DB->get_record('enrol', ['id' => $instanceid], '*', MUST_EXIST);
         }
 
-        // Resolve role: use provided roleid or fallback to the instance's default role.
-        $finalroleid = $params['roleid'] > 0 ? $params['roleid'] : (int) $manualinstance->roleid;
+        // Resolve role: look up by shortname or fall back to the enrol instance's default role.
+        if ($params['role'] !== '') {
+            $rolerecord = $DB->get_record('role', ['shortname' => $params['role']]);
+            if (!$rolerecord) {
+                throw new moodle_exception('invalidrole', 'error');
+            }
+            $finalroleid = (int) $rolerecord->id;
+        } else {
+            $finalroleid = (int) $manualinstance->roleid;
+        }
+        $roleshortname = $DB->get_field('role', 'shortname', ['id' => $finalroleid]);
 
         // Enrol user (idempotent; Moodle updates the enrolment if the user is already enrolled).
         $enrolplugin->enrol_user($manualinstance, $user->id, $finalroleid);
@@ -1450,8 +1502,10 @@ class local_hrms_external extends external_api {
         return [
             'success'  => 1,
             'userid'   => (int) $user->id,
+            'email'    => $user->email,
             'courseid' => (int) $course->id,
-            'roleid'   => $finalroleid,
+            'idnumber' => $course->idnumber ?: '',
+            'role'     => $roleshortname,
             'message'  => 'User enrolled successfully',
         ];
     }
@@ -1462,11 +1516,13 @@ class local_hrms_external extends external_api {
      */
     public static function enrol_user_returns() {
         return new external_single_structure([
-            'success'  => new external_value(PARAM_INT,  'Operation success (1)'),
-            'userid'   => new external_value(PARAM_INT,  'User ID'),
-            'courseid' => new external_value(PARAM_INT,  'Course ID'),
-            'roleid'   => new external_value(PARAM_INT,  'Role ID used for enrolment'),
-            'message'  => new external_value(PARAM_TEXT, 'Result message'),
+            'success'  => new external_value(PARAM_INT,   'Operation success (1)'),
+            'userid'   => new external_value(PARAM_INT,   'User ID'),
+            'email'    => new external_value(PARAM_EMAIL, 'User email address'),
+            'courseid' => new external_value(PARAM_INT,   'Course ID'),
+            'idnumber' => new external_value(PARAM_TEXT,  'Course ID number'),
+            'role'     => new external_value(PARAM_TEXT,  'Role shortname used for enrolment'),
+            'message'  => new external_value(PARAM_TEXT,  'Result message'),
         ]);
     }
 
