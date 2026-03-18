@@ -458,6 +458,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `shortname` | string | Nama pendek kursus |
 | `fullname` | string | Nama lengkap kursus |
 | `idnumber` | string | Nomor ID kursus |
+| `summary` | string | Deskripsi kursus |
 | `categoryid` | int | ID kategori |
 | `startdate` | int | Tanggal mulai (Unix timestamp) |
 | `enddate` | int | Tanggal berakhir (Unix timestamp) |
@@ -488,6 +489,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   "shortname": "k3-lanjut-2026",
   "fullname": "Pelatihan K3 Lanjutan",
   "idnumber": "TRAIN-2026-002",
+  "summary": "",
   "categoryid": 3,
   "startdate": 1748736000,
   "enddate": 0,
@@ -535,6 +537,7 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `shortname` | string | Nama pendek (setelah update) |
 | `fullname` | string | Nama lengkap (setelah update) |
 | `idnumber` | string | Nomor ID (setelah update) |
+| `summary` | string | Deskripsi kursus (setelah update) |
 | `categoryid` | int | ID kategori (setelah update) |
 | `startdate` | int | Tanggal mulai (setelah update) |
 | `enddate` | int | Tanggal berakhir (setelah update) |
