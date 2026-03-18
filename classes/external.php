@@ -1203,6 +1203,9 @@ class local_hrms_external extends external_api {
             'lastname'    => $user->lastname,
             'institution' => $user->institution ?: '',
             'department'  => $user->department ?: '',
+            'phone1'      => $user->phone1 ?: '',
+            'city'        => $user->city ?: '',
+            'country'     => $user->country ?: '',
             'auth'        => $user->auth,
             'timecreated' => (int) $user->timecreated,
         ];
@@ -1221,6 +1224,9 @@ class local_hrms_external extends external_api {
             'lastname'    => new external_value(PARAM_TEXT,  'Last name'),
             'institution' => new external_value(PARAM_TEXT,  'Institution / company name'),
             'department'  => new external_value(PARAM_TEXT,  'Department'),
+            'phone1'      => new external_value(PARAM_TEXT,  'Phone number'),
+            'city'        => new external_value(PARAM_TEXT,  'City'),
+            'country'     => new external_value(PARAM_TEXT,  'Country code (e.g. ID)'),
             'auth'        => new external_value(PARAM_TEXT,  'Auth plugin used'),
             'timecreated' => new external_value(PARAM_INT,   'Account creation timestamp'),
         ]);

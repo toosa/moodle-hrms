@@ -746,6 +746,9 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
 | `lastname` | string | Nama belakang |
 | `institution` | string | Nama institusi/perusahaan |
 | `department` | string | Departemen |
+| `phone1` | string | Nomor telepon |
+| `city` | string | Kota |
+| `country` | string | Kode negara (contoh: `ID`) |
 | `auth` | string | Plugin autentikasi yang digunakan |
 | `timecreated` | int | Waktu akun dibuat (Unix timestamp) |
 
@@ -779,6 +782,9 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   "lastname": "Rahayu",
   "institution": "PT Contoh Indonesia",
   "department": "SDM",
+  "phone1": "",
+  "city": "Jakarta",
+  "country": "ID",
   "auth": "manual",
   "timecreated": 1741824000
 }
