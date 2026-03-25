@@ -133,40 +133,78 @@
 ### Class Diagram
 
 ```
-┌─────────────────────────────────────────────────┐
-│         external_api (Moodle Core)              │
-│                                                 │
-│  + validate_parameters()                        │
-│  + validate_context()                           │
-└────────────────┬────────────────────────────────┘
-                 │
-                 │ extends
-                 ▼
-┌─────────────────────────────────────────────────┐
-│         local_hrms_external                     │
-├─────────────────────────────────────────────────┤
-│  Static Methods:                                │
-│                                                 │
-│  + get_active_courses_parameters()              │
-│  + get_active_courses(apikey)                   │
-│  + get_active_courses_returns()                 │
-│                                                 │
-│  + get_course_participants_parameters()         │
-│  + get_course_participants(apikey, courseid)    │
-│  + get_course_participants_returns()            │
-│                                                 │
-│  + get_course_results_parameters()              │
-│  + get_course_results(apikey, courseid, userid) │
-│  + get_course_results_returns()                 │
-│                                                 │
-│  + get_all_course_results_parameters()          │
-│  + get_all_course_results(apikey, format)       │
-│  + get_all_course_results_returns()             │
-│                                                 │
-│  - validate_api_key(apikey) : bool              │
-│  - get_quiz_score(userid, courseid, type)       │
-│  - get_questionnaire_scores(userid, courseid)   │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│              external_api (Moodle Core)                     │
+│                                                             │
+│  + validate_parameters()                                    │
+│  + validate_context()                                       │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         │ extends
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 local_hrms_external                         │
+├─────────────────────────────────────────────────────────────┤
+│  Static Methods (Read):                                     │
+│                                                             │
+│  + get_active_courses_parameters()                          │
+│  + get_active_courses(apikey, courseid, idnumber)           │
+│  + get_active_courses_returns()                             │
+│                                                             │
+│  + get_course_participants_parameters()                     │
+│  + get_course_participants(apikey, courseid, idnumber)      │
+│  + get_course_participants_returns()                        │
+│                                                             │
+│  + get_course_results_parameters()                          │
+│  + get_course_results(apikey, courseid, userid, idnumber)   │
+│  + get_course_results_returns()                             │
+│                                                             │
+│  + get_users_parameters()                                   │
+│  + get_users(apikey, status, email)                         │
+│  + get_users_returns()                                      │
+│                                                             │
+│  + get_course_progress_parameters()                         │
+│  + get_course_progress(apikey, courseid, idnumber,          │
+│                         userid, email)                      │
+│  + get_course_progress_returns()                            │
+│                                                             │
+│  Static Methods (Write):                                    │
+│                                                             │
+│  + set_user_suspension_parameters()                         │
+│  + set_user_suspension(apikey, userid, email, suspended)    │
+│  + set_user_suspension_returns()                            │
+│                                                             │
+│  + create_course_parameters()                               │
+│  + create_course(apikey, fullname, shortname, idnumber, …)  │
+│  + create_course_returns()                                  │
+│                                                             │
+│  + update_course_parameters()                               │
+│  + update_course(apikey, idnumber, …)                       │
+│  + update_course_returns()                                  │
+│                                                             │
+│  + create_user_parameters()                                 │
+│  + create_user(apikey, username, email, …)                  │
+│  + create_user_returns()                                    │
+│                                                             │
+│  + update_user_parameters()                                 │
+│  + update_user(apikey, userid, email, …)                    │
+│  + update_user_returns()                                    │
+│                                                             │
+│  + enrol_user_parameters()                                  │
+│  + enrol_user(apikey, userid, email, courseid, idnumber,    │
+│               role)                                         │
+│  + enrol_user_returns()                                     │
+│                                                             │
+│  + unenrol_user_parameters()                                │
+│  + unenrol_user(apikey, userid, email, courseid, idnumber)  │
+│  + unenrol_user_returns()                                   │
+│                                                             │
+│  Private Helper Methods:                                    │
+│                                                             │
+│  - validate_api_key(apikey) : bool                          │
+│  - get_quiz_score(userid, courseid, type)  [unused/reserved]│
+│  - get_questionnaire_scores(userid, courseid)               │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ### Function Pattern
@@ -274,7 +312,7 @@ private static function get_questionnaire_scores($userid, $courseid) {
         'questionnaire_available' => 0,
         'score_materi' => 0.00,
         'score_trainer' => 0.00,
-        'score_tempat' => 0.00,
+        'score_fasilitas' => 0.00,
         'score_total' => 0.00
     ];
     
@@ -387,22 +425,22 @@ sequenceDiagram
     participant API as local_hrms_external
     participant DB as Database
     
-    Client->>API: get_course_participants(apikey, courseid)
+    Client->>API: get_course_participants(apikey, courseid=0, idnumber='')
     
     API->>API: Validate parameters & API key
     
-    alt courseid = 0
+    alt courseid = 0 and idnumber empty
         Note over API: Get all participants from all courses
-        API->>DB: SELECT users FROM all courses<br/>JOIN user_enrolments<br/>JOIN enrol<br/>JOIN course<br/>LEFT JOIN user_info_data (company)
-    else courseid > 0
+        API->>DB: SELECT users FROM all courses<br/>JOIN user_enrolments<br/>JOIN enrol<br/>JOIN course<br/>company_name from u.institution<br/>role from correlated subquery
+    else courseid > 0 or idnumber
         Note over API: Get participants for specific course
-        API->>DB: SELECT users WHERE course_id = courseid<br/>JOIN user_enrolments<br/>JOIN enrol<br/>JOIN course<br/>LEFT JOIN user_info_data (company)
+        API->>DB: SELECT users WHERE course_id = :courseid<br/>JOIN user_enrolments<br/>JOIN enrol<br/>JOIN course<br/>company_name from u.institution<br/>role from correlated subquery
     end
     
     DB-->>API: Participant records
     
     loop For each participant
-        API->>API: Format data:<br/>- user_id<br/>- email<br/>- firstname, lastname<br/>- company_name<br/>- course info<br/>- enrollment_date
+        API->>API: Format data:<br/>- user_id, email, firstname, lastname<br/>- company_name (from institution)<br/>- course_id, course_idnumber<br/>- course_shortname, course_name<br/>- enrollment_date<br/>- role
     end
     
     API-->>Client: Array of participants (JSON)
@@ -598,87 +636,118 @@ sequenceDiagram
 
 #### Query 1: Active Courses
 ```sql
-SELECT 
-    c.id, 
-    c.shortname, 
-    c.fullname, 
-    c.summary, 
-    c.startdate, 
-    c.enddate, 
-    c.visible
-FROM mdl_course c 
-WHERE c.id != 1 
+SELECT
+    c.id,
+    c.idnumber,
+    c.shortname,
+    c.fullname,
+    c.summary,
+    c.startdate,
+    c.enddate,
+    c.visible,
+    cc.id   AS category_id,
+    cc.name AS category_name,
+    COALESCE(cfd.value, '') AS jp
+FROM mdl_course c
+JOIN mdl_course_categories cc
+    ON cc.id = c.category
+LEFT JOIN mdl_customfield_category cfc
+    ON cfc.component = 'core_course' AND cfc.area = 'course'
+LEFT JOIN mdl_customfield_field cff
+    ON cff.shortname = 'jp' AND cff.categoryid = cfc.id
+LEFT JOIN mdl_customfield_data cfd
+    ON cfd.instanceid = c.id AND cfd.fieldid = cff.id
+WHERE c.id != 1
   AND c.visible = 1
-ORDER BY c.fullname;
+  [AND c.id = :courseid]       -- Optional filter by course ID
+  [AND c.idnumber = :idnumber] -- Optional filter by ID number
+ORDER BY cc.name, c.fullname;
 ```
 
 #### Query 2: Course Participants
 ```sql
-SELECT DISTINCT 
-    u.id,
+SELECT CONCAT(u.id, '-', c.id) AS id,
+    u.id                           AS user_id,
     u.email,
     u.firstname,
     u.lastname,
-    COALESCE(uid_branch.data, '') as company_name,
-    c.id as course_id,
+    COALESCE(u.institution, '')    AS company_name,
+    c.id                           AS course_id,
+    c.idnumber                     AS course_idnumber,
     c.shortname,
-    c.fullname as course_name,
-    ue.timecreated as enrollment_date
+    c.fullname                     AS course_name,
+    ue.timecreated                 AS enrollment_date,
+    COALESCE((
+        SELECT r.shortname
+        FROM mdl_role_assignments ra
+        JOIN mdl_context ctx
+            ON ctx.id = ra.contextid AND ctx.contextlevel = 50
+        JOIN mdl_role r ON r.id = ra.roleid
+        WHERE ra.userid = u.id AND ctx.instanceid = c.id
+        ORDER BY r.sortorder ASC
+        LIMIT 1
+    ), '') AS role
 FROM mdl_user u
 JOIN mdl_user_enrolments ue ON u.id = ue.userid
 JOIN mdl_enrol e ON ue.enrolid = e.id
 JOIN mdl_course c ON e.courseid = c.id
-LEFT JOIN mdl_user_info_field uif_branch 
-    ON uif_branch.shortname = 'branch'
-LEFT JOIN mdl_user_info_data uid_branch 
-    ON u.id = uid_branch.userid 
-    AND uid_branch.fieldid = uif_branch.id
-WHERE u.deleted = 0 
+WHERE u.deleted = 0
   AND u.confirmed = 1
   AND c.id != 1
   AND c.visible = 1
-  [AND c.id = :courseid]  -- Optional filter
+  [AND c.id = :courseid]       -- Optional filter by course ID
+  [AND c.idnumber = :idnumber] -- Optional filter by ID number
 ORDER BY c.fullname, u.lastname, u.firstname;
+
+-- Note: company_name is sourced from mdl_user.institution field
+-- Note: role uses correlated subquery to retrieve the user's highest-priority
+--       role in the course context
 ```
 
 #### Query 3: Course Results
 ```sql
-SELECT DISTINCT 
-    u.id as user_id,
+SELECT CONCAT(u.id, '-', c.id) AS id,
+    u.id                        AS user_id,
     u.email,
     u.firstname,
     u.lastname,
-    COALESCE(uid_branch.data, '') as company_name,
-    c.id as course_id,
+    COALESCE(u.institution, '') AS company_name,
+    c.id                        AS course_id,
+    c.idnumber                  AS course_idnumber,
     c.shortname,
-    c.fullname as course_name,
+    c.fullname                  AS course_name,
     cc.timecompleted,
-    COALESCE(gg.finalgrade, 0) as final_grade
+    COALESCE(gg.finalgrade, 0)  AS final_grade
 FROM mdl_user u
 JOIN mdl_user_enrolments ue ON u.id = ue.userid
 JOIN mdl_enrol e ON ue.enrolid = e.id
 JOIN mdl_course c ON e.courseid = c.id
-LEFT JOIN mdl_course_completions cc 
-    ON u.id = cc.userid 
-    AND c.id = cc.course
-LEFT JOIN mdl_grade_items gi 
-    ON c.id = gi.courseid 
-    AND gi.itemtype = 'course'
-LEFT JOIN mdl_grade_grades gg 
-    ON u.id = gg.userid 
-    AND gi.id = gg.itemid
-LEFT JOIN mdl_user_info_field uif_branch 
-    ON uif_branch.shortname = 'branch'
-LEFT JOIN mdl_user_info_data uid_branch 
-    ON u.id = uid_branch.userid 
-    AND uid_branch.fieldid = uif_branch.id
-WHERE u.deleted = 0 
+LEFT JOIN mdl_course_completions cc
+    ON u.id = cc.userid AND c.id = cc.course
+LEFT JOIN mdl_grade_items gi
+    ON c.id = gi.courseid AND gi.itemtype = 'course'
+LEFT JOIN mdl_grade_grades gg
+    ON u.id = gg.userid AND gi.id = gg.itemid
+WHERE u.deleted = 0
   AND u.confirmed = 1
   AND c.id != 1
   AND c.visible = 1
-  [AND c.id = :courseid]  -- Optional filter
-  [AND u.id = :userid]    -- Optional filter
+  AND EXISTS (
+      SELECT 1
+      FROM mdl_role_assignments ra
+      JOIN mdl_context ctx
+          ON ctx.id = ra.contextid AND ctx.contextlevel = 50
+      JOIN mdl_role r
+          ON r.id = ra.roleid AND r.shortname = 'student'
+      WHERE ra.userid = u.id AND ctx.instanceid = c.id
+  )
+  [AND c.id = :courseid]       -- Optional filter by course ID
+  [AND c.idnumber = :idnumber] -- Optional filter by ID number
+  [AND u.id = :userid]         -- Optional filter by user ID
 ORDER BY c.fullname, u.lastname, u.firstname;
+
+-- Note: Only users with the 'student' role in the course are returned.
+-- Note: company_name is sourced from mdl_user.institution.
 ```
 
 #### Query 4: Quiz Scores (Pre/Post Test) - Using Custom Fields
@@ -734,10 +803,10 @@ WHERE qrr.response_id = :response_id
 ORDER BY qqc.id ASC;
 
 -- Note: If exactly 9 choices exist:
---   score_materi = average of choices 1-3
---   score_trainer = average of choices 4-6
---   score_tempat = average of choices 7-9
---   score_total = average of all 9 choices
+--   score_materi    = average of choices 1-3
+--   score_trainer   = average of choices 4-6
+--   score_fasilitas = average of choices 7-9
+--   score_total     = average of all 9 choices
 -- Otherwise only score_total is returned
 ```
 
@@ -836,48 +905,204 @@ sequenceDiagram
 
 ### API Endpoints
 
-The plugin exposes 4 main API endpoints:
+The plugin exposes **13 API endpoints** (via the `HRMS Integration Service` web service):
+
+---
+
+#### READ endpoints
 
 #### 1. get_active_courses
 Returns a list of all visible courses (excluding site course).
 
 **Parameters:**
 - `apikey` (required): API key for authentication
+- `courseid` (optional, default=0): Filter by specific course ID; 0 = no filter
+- `idnumber` (optional, default=''): Filter by course ID number; ignored if `courseid > 0`
 
-**Returns:** Array of course objects with id, shortname, fullname, summary, startdate, enddate, visible
+**Returns:** Array of course objects with id, idnumber, shortname, fullname, summary, category_id, category_name, startdate, enddate, visible, jp
+
+> **Alias:** `local_hrms_get_all_active_courses` maps to the same method.
+
+---
 
 #### 2. get_course_participants
-Returns participants enrolled in courses with their company information.
+Returns participants enrolled in courses.
 
 **Parameters:**
 - `apikey` (required): API key for authentication
-- `courseid` (optional, default=0): Specific course ID, or 0 for all courses
+- `courseid` (optional, default=0): Filter by course ID; 0 = all courses
+- `idnumber` (optional, default=''): Filter by course ID number; ignored if `courseid > 0`
 
-**Returns:** Array of participant objects including user info, course info, and enrollment date
+**Returns:** Array of participant objects including user_id, email, firstname, lastname, company_name (from `institution` field), course_id, course_idnumber, course_shortname, course_name, enrollment_date, role
+
+---
 
 #### 3. get_course_results
-Returns course results including grades, pre/post-test scores, and completion data.
+Returns course results (grades, completion) for enrolled **students** only.
 
 **Parameters:**
 - `apikey` (required): API key for authentication
 - `courseid` (optional, default=0): Filter by course ID
 - `userid` (optional, default=0): Filter by user ID
+- `idnumber` (optional, default=''): Filter by course ID number; ignored if `courseid > 0`
 
-**Returns:** Array of result objects with grades, test scores, completion status
+**Returns:** Array of result objects with user info, course_id, course_idnumber, course_shortname, course_name, company_name, final_grade, completion_date, is_completed
 
-#### 4. get_all_course_results
-Returns comprehensive results for all enrollments including questionnaire scores.
+---
+
+#### 4. get_users
+Returns Moodle user accounts with optional status/email filters.
 
 **Parameters:**
 - `apikey` (required): API key for authentication
-- `format` (optional, default='json'): Response format
+- `status` (optional, default='all'): Filter by status — `all`, `active`, or `suspended`
+- `email` (optional, default=''): Filter by exact email address
 
-**Returns:** Array of result objects with:
-- Basic user and course info
-- Final grade, pre-test and post-test scores
-- Completion status and date
-- Questionnaire scores (score_materi, score_trainer, score_tempat, score_total)
-- questionnaire_available flag
+**Returns:** Array of user objects with id, username, email, firstname, lastname, institution, suspended, timecreated, lastlogin
+
+---
+
+#### 5. get_course_progress
+Returns activity-level completion progress per enrolled user.
+
+**Parameters:**
+- `apikey` (required): API key for authentication
+- `courseid` (optional, default=0): Filter by course ID
+- `idnumber` (optional, default=''): Filter by course ID number; ignored if `courseid > 0`
+- `userid` (optional, default=0): Filter by user ID
+- `email` (optional, default=''): Filter by exact user email; ignored if `userid > 0`
+
+**Returns:** Array of progress objects with user info, course info, modules_total, modules_completed, completion_percentage, is_completed, completion_date
+
+---
+
+#### WRITE endpoints
+
+#### 6. set_user_suspension
+Suspends or unsuspends a Moodle user. Site admins cannot be suspended.
+
+**Parameters:**
+- `apikey` (required): API key for authentication
+- `userid` (optional, default=0): Target user ID; used if > 0
+- `email` (optional, default=''): Target user email; used if `userid = 0`
+- `suspended` (required): 1 = suspend, 0 = unsuspend
+
+**Returns:** Single object with success, userid, email, suspended, message
+
+---
+
+#### 7. create_course
+Creates a new Moodle course.
+
+**Parameters:**
+- `apikey` (required): API key for authentication
+- `fullname` (required): Course full name
+- `shortname` (required): Course short name (must be unique)
+- `idnumber` (required): Course ID number
+- `summary` (optional, default=''): Course summary (HTML)
+- `categoryid` (optional, default=1): Category ID
+- `startdate` (optional, default=0): Unix timestamp; defaults to `time()` if 0
+- `enddate` (optional, default=0): Unix timestamp
+- `visible` (optional, default=0): 1 = visible, 0 = hidden
+- `jp` (optional, default=1): JP custom field value
+
+**Returns:** Single object with id, shortname, fullname, idnumber, summary, categoryid, startdate, enddate, visible, jp
+
+---
+
+#### 8. update_course
+Updates an existing course identified by its `idnumber`. Only provided (non-default) fields are changed.
+
+**Parameters:**
+- `apikey` (required): API key for authentication
+- `idnumber` (required): Course ID number used to identify the course
+- `fullname` (optional): New full name; empty = no change
+- `shortname` (optional): New short name; empty = no change
+- `new_idnumber` (optional): New ID number; empty = no change
+- `summary` (optional): New summary; empty = no change
+- `categoryid` (optional, default=0): New category ID; 0 = no change
+- `startdate` (optional, default=0): New start date; 0 = no change
+- `enddate` (optional, default=-1): New end date; -1 = no change
+- `visible` (optional, default=-1): 1/0 = change, -1 = no change
+- `jp` (optional, default=0): New JP value; 0 = no change
+
+**Returns:** Updated course object (same structure as `create_course`)
+
+---
+
+#### 9. create_user
+Creates a new Moodle user account.
+
+**Parameters:**
+- `apikey` (required): API key for authentication
+- `username` (required): Username (lowercase, no spaces)
+- `email` (required): Email address (must be unique)
+- `firstname` (required): First name
+- `lastname` (required): Last name
+- `password` (required): Plain-text password
+- `institution` (optional): Institution / company name
+- `department` (optional): Department
+- `phone1` (optional): Phone number
+- `city` (optional): City
+- `country` (optional): Two-letter country code (e.g. `ID`)
+- `auth` (optional, default='manual'): Auth plugin
+
+**Returns:** Single object with id, username, email, firstname, lastname, institution, department, phone1, city, country, auth, timecreated
+
+---
+
+#### 10. update_user
+Updates an existing user identified by `userid` or `email`. Only provided (non-empty) fields are changed.
+
+**Parameters:**
+- `apikey` (required): API key for authentication
+- `userid` (optional, default=0): User ID; used if > 0
+- `email` (optional): Current email to identify user when `userid = 0`
+- `new_email` (optional): New email address; empty = no change
+- `firstname` (optional): New first name; empty = no change
+- `lastname` (optional): New last name; empty = no change
+- `institution` (optional): New institution; empty = no change
+- `department` (optional): New department; empty = no change
+- `phone1` (optional): New phone number; empty = no change
+- `password` (optional): New password; empty = no change
+- `username` (optional): New username; empty = no change
+- `auth` (optional): New auth method; empty = no change
+
+**Returns:** Updated user object with id, username, email, firstname, lastname, institution, department, phone1, auth
+
+---
+
+#### 11. enrol_user
+Enrols a user into a course using the manual enrolment plugin (idempotent).
+
+**Parameters:**
+- `apikey` (required): API key for authentication
+- `userid` (optional, default=0): User ID; used if > 0
+- `email` (optional): User email; used if `userid = 0`
+- `courseid` (optional, default=0): Course ID; used if > 0
+- `idnumber` (optional): Course ID number; used if `courseid = 0`
+- `role` (optional): Role shortname (e.g. `student`, `teacher`); defaults to enrol instance's default role
+
+**Returns:** Single object with success, userid, email, courseid, idnumber, role, message
+
+---
+
+#### 12. unenrol_user
+Removes a user from all enrolment instances in a course.
+
+**Parameters:**
+- `apikey` (required): API key for authentication
+- `userid` (optional, default=0): User ID; used if > 0
+- `email` (optional): User email; used if `userid = 0`
+- `courseid` (optional, default=0): Course ID; used if > 0
+- `idnumber` (optional): Course ID number; used if `courseid = 0`
+
+**Returns:** Single object with success, userid, courseid, message
+
+---
+
+#### 13. get_all_active_courses *(alias)*
+Alias for `get_active_courses`. Registered separately for backwards compatibility.
 
 ### Questionnaire Scoring Logic
 
@@ -891,10 +1116,10 @@ The `get_questionnaire_scores()` helper method implements sophisticated logic fo
 **Scoring Rules:**
 
 **Case 1: Exactly 9 choices with responses**
-- `score_materi` = average of choices 1-3 (Material quality)
-- `score_trainer` = average of choices 4-6 (Trainer quality)
-- `score_tempat` = average of choices 7-9 (Venue quality)
-- `score_total` = average of all 9 choices
+- `score_materi`    = average of choices 1-3 (Material quality)
+- `score_trainer`   = average of choices 4-6 (Trainer quality)
+- `score_fasilitas` = average of choices 7-9 (Facilities quality)
+- `score_total`     = average of all 9 choices
 - `questionnaire_available` = 1
 
 **Case 2: Different number of choices**
@@ -917,7 +1142,15 @@ The `get_questionnaire_scores()` helper method implements sophisticated logic fo
    - `/courses` → get_active_courses
    - `/participants` → get_course_participants
    - `/results` → get_course_results
-   - `/all_results` → get_all_course_results (with questionnaire data)
+   - `/users` → get_users
+   - `/progress` → get_course_progress
+   - `/user/suspension` → set_user_suspension
+   - `/course/create` → create_course
+   - `/course/update` → update_course
+   - `/user/create` → create_user
+   - `/user/update` → update_user
+   - `/enrol` → enrol_user
+   - `/unenrol` → unenrol_user
 
 2. **Stateless**: Each request is independent
    - No session management
@@ -989,40 +1222,34 @@ Response with pagination:
 
 ## Implementation Examples
 
-### Example 1: Using get_all_course_results
+### Example 1: Using get_course_results
 
 **Request:**
 ```bash
 curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
   -d "wstoken=YOUR_WEBSERVICE_TOKEN" \
-  -d "wsfunction=local_hrms_get_all_course_results" \
+  -d "wsfunction=local_hrms_get_course_results" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY" \
-  -d "format=json"
+  -d "courseid=5"
 ```
 
 **Response:**
 ```json
 [
   {
-    "course_id": 5,
-    "course_name": "Customer Service Training",
-    "course_shortname": "CST-2025",
     "user_id": 123,
+    "email": "john.doe@company.com",
     "firstname": "John",
     "lastname": "Doe",
-    "email": "john.doe@company.com",
-    "company_name": "Jakarta Branch",
+    "company_name": "PT. Maju Bersama",
+    "course_id": 5,
+    "course_idnumber": "CST-2025-001",
+    "course_shortname": "CST-2025",
+    "course_name": "Customer Service Training",
     "final_grade": 85.50,
-    "pretest_score": 70.00,
-    "posttest_score": 90.00,
     "completion_date": 1704067200,
-    "is_completed": 1,
-    "questionnaire_available": 1,
-    "score_materi": 4.33,
-    "score_trainer": 4.67,
-    "score_tempat": 4.00,
-    "score_total": 4.33
+    "is_completed": 1
   }
 ]
 ```
@@ -1041,16 +1268,16 @@ To get the full breakdown of scores (materi, trainer, tempat), create a question
 5. Communication skills
 6. Ability to answer questions
 
-**Choices 7-9 (Venue):**
+**Choices 7-9 (Facilities):**
 7. Room comfort
 8. Facilities and equipment
 9. Location accessibility
 
 Each choice is rated on a scale (typically 1-5), and the plugin automatically calculates:
-- `score_materi` = (choice1 + choice2 + choice3) / 3
-- `score_trainer` = (choice4 + choice5 + choice6) / 3  
-- `score_tempat` = (choice7 + choice8 + choice9) / 3
-- `score_total` = (all choices) / 9
+- `score_materi`    = (choice1 + choice2 + choice3) / 3
+- `score_trainer`   = (choice4 + choice5 + choice6) / 3
+- `score_fasilitas` = (choice7 + choice8 + choice9) / 3
+- `score_total`     = (all choices) / 9
 
 ### Example 3: Error Handling
 
@@ -1161,13 +1388,22 @@ add_to_log(
 ## Future Enhancements
 
 ### Phase 1: Completed ✓
-1. ✓ Basic API endpoints (courses, participants, results)
+1. ✓ Basic read endpoints (courses, participants, results)
 2. ✓ API key authentication
 3. ✓ Pre-test and post-test score retrieval using custom fields
 4. ✓ Questionnaire scoring with Rate question analysis
-5. ✓ Comprehensive result endpoint with all metrics
 
-### Phase 2: Planned Features
+### Phase 2: Completed ✓
+1. ✓ `idnumber`-based filtering for courses (all read endpoints)
+2. ✓ `get_active_courses` now returns category info and `jp` custom field
+3. ✓ `get_course_participants` now returns `role` field; company from `institution`
+4. ✓ `get_course_results` restricted to `student` role
+5. ✓ User management: `get_users`, `set_user_suspension`, `create_user`, `update_user`
+6. ✓ Course management: `create_course`, `update_course`
+7. ✓ Enrolment management: `enrol_user`, `unenrol_user`
+8. ✓ Activity completion progress: `get_course_progress`
+
+### Phase 3: Planned Features
 1. **Filtering and Pagination**
    - Add pagination support to all list endpoints
    - Advanced filtering (date ranges, completion status)
@@ -1179,12 +1415,11 @@ add_to_log(
    - Batch processing for bulk operations
 
 3. **Additional Endpoints**
-   - User enrollment management
-   - Course assignment tracking
    - Certificate generation and download
    - Attendance tracking integration
+   - Batch enrolment/unenrolment
 
-### Phase 3: Advanced Features
+### Phase 4: Advanced Features
 1. **Webhook Support**
    - Real-time notifications for course completions
    - Grade update notifications
@@ -1202,7 +1437,7 @@ add_to_log(
    - Configurable choice grouping
    - Text response analysis
 
-### Phase 4: Enterprise Features
+### Phase 5: Enterprise Features
 1. **OAuth 2.0 Authentication**
    - Replace or complement API key with OAuth 2.0
    - Token refresh mechanism
@@ -1241,7 +1476,18 @@ add_to_log(
 
 ## Changelog
 
-### Version 1.1 (Current)
+### Version 2.0 (2026-03-25)
+- Added write endpoints: `create_course`, `update_course`, `create_user`, `update_user`, `enrol_user`, `unenrol_user`, `set_user_suspension`
+- Added `get_users` endpoint (user list with status/email filter)
+- Added `get_course_progress` endpoint (activity-level completion per user)
+- `get_active_courses`: added `courseid`/`idnumber` filters; added `idnumber`, `category_id`, `category_name`, `jp` fields; ordered by category then fullname
+- `get_course_participants`: added `idnumber` filter; replaced `user_info_data` branch lookup with `u.institution`; added `course_idnumber` and `role` fields
+- `get_course_results`: added `idnumber` filter; restricted to `student` role; added `course_idnumber` field; removed pre/post-test scores from this endpoint
+- Renamed `score_tempat` → `score_fasilitas` throughout questionnaire scoring
+- Removed `get_all_course_results` public endpoint (logic retained in private helper for potential future use)
+- Added alias `local_hrms_get_all_active_courses` → `get_active_courses`
+
+### Version 1.1 (2026-02-01)
 - Added `get_all_course_results()` endpoint
 - Implemented questionnaire scoring with Rate question
 - Added support for 9-choice questionnaire breakdown
@@ -1272,14 +1518,19 @@ add_to_log(
 
 ### Configuration Requirements
 
-**Custom Fields:**
-- `jenis_quiz` (Course Module): Values 2=PreTest, 3=PostTest
-- `branch` (User Profile): Company/branch name
+**Custom Fields (Course Module):**
+- `jenis_quiz` — Values: 2 = PreTest, 3 = PostTest (used by the reserved `get_quiz_score` helper)
+
+**Custom Fields (Course):**
+- `jp` — JP (learning hours) field; numeric value attached to each course
 
 **Questionnaire Setup:**
-- Must use "Rate" question type (QUESRATE)
-- For detailed scores, create exactly 9 choices
-- Choices ordered by ID (1-9 for proper categorization)
+- Must use "Rate" question type (QUESRATE, type_id = 8)
+- For detailed sub-scores, create exactly 9 choices
+- Choices 1–3 → `score_materi`, Choices 4–6 → `score_trainer`, Choices 7–9 → `score_fasilitas`
+
+**User Data:**
+- `institution` field — used as `company_name` in all API responses
 
 ### References
 
@@ -1291,6 +1542,6 @@ add_to_log(
 
 ---
 
-**Last Updated**: 2026-02-01  
-**Version**: 1.1  
+**Last Updated**: 2026-03-25  
+**Version**: 2.0  
 **Author**: Prihantoosa

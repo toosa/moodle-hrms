@@ -7,10 +7,14 @@ This document contains all sequence diagrams for the HRMS Integration Plugin in 
 2. [Get Active Courses Flow](#2-get-active-courses-flow)
 3. [Get Course Participants Flow](#3-get-course-participants-flow)
 4. [Get Course Results Flow](#4-get-course-results-flow)
-5. [Get All Course Results Flow (with Questionnaire)](#5-get-all-course-results-flow-with-questionnaire)
-6. [Questionnaire Scoring Flow](#6-questionnaire-scoring-flow)
-7. [Authentication Flow](#7-authentication-flow)
-8. [Error Handling Flow](#8-error-handling-flow)
+5. [Get Users Flow](#5-get-users-flow)
+6. [Get Course Progress Flow](#6-get-course-progress-flow)
+7. [Questionnaire Scoring Flow](#7-questionnaire-scoring-flow)
+8. [User Management Flows](#8-user-management-flows)
+9. [Course Management Flows](#9-course-management-flows)
+10. [Enrolment Management Flows](#10-enrolment-management-flows)
+11. [Authentication Flow](#11-authentication-flow)
+12. [Error Handling Flow](#12-error-handling-flow)
 
 ---
 
@@ -70,22 +74,31 @@ sequenceDiagram
     participant DB as Moodle Database
     
     HRMS->>WS: POST /webservice/rest/server.php
-    Note over HRMS,WS: wstoken + apikey + wsfunction
+    Note over HRMS,WS: wstoken + apikey + wsfunction<br/>+ courseid (optional)<br/>+ idnumber (optional)
     
-    WS->>API: local_hrms_get_active_courses(apikey)
+    WS->>API: local_hrms_get_active_courses(apikey, courseid, idnumber)
     
-    API->>API: validate_parameters(apikey)
+    API->>API: validate_parameters()
     API->>API: validate_api_key(apikey)
     
     alt API Key Invalid
         API-->>HRMS: Error: Invalid API Key
     else API Key Valid
         API->>API: validate_context(system)
-        API->>DB: SELECT courses WHERE visible=1
+        
+        alt courseid > 0
+            API->>DB: SELECT courses WHERE c.id = :courseid AND visible = 1
+        else idnumber not empty
+            API->>DB: SELECT courses WHERE c.idnumber = :idnumber AND visible = 1
+        else no filter
+            API->>DB: SELECT all courses WHERE visible = 1
+        end
+        
+        Note over DB: JOIN course_categories<br/>LEFT JOIN customfield_data (jp)
         DB-->>API: Course records
         
         loop For each course
-            API->>API: Format course data
+            API->>API: Format course data<br/>- Strip HTML from summary<br/>- Include category info<br/>- Include jp field
         end
         
         API-->>WS: Array of courses
@@ -102,7 +115,7 @@ sequenceDiagram
     participant Validator
     participant DB as Database
     
-    Client->>API: get_active_courses(apikey)
+    Client->>API: get_active_courses(apikey, courseid=0, idnumber='')
     
     API->>Validator: validate_parameters()
     Validator-->>API: params validated
@@ -117,13 +130,13 @@ sequenceDiagram
         API->>Validator: validate_context(system)
         Validator-->>API: context OK
         
-        Note over API,DB: SQL Query
-        API->>DB: SELECT id, shortname, fullname, summary,<br/>startdate, enddate, visible<br/>FROM mdl_course<br/>WHERE id != 1 AND visible = 1<br/>ORDER BY fullname
+        Note over API,DB: SQL Query (with optional filters)
+        API->>DB: SELECT c.id, c.idnumber, c.shortname, c.fullname,<br/>c.summary, c.startdate, c.enddate, c.visible,<br/>cc.id as category_id, cc.name as category_name,<br/>COALESCE(cfd.value,'') as jp<br/>FROM mdl_course c<br/>JOIN mdl_course_categories cc ON cc.id = c.category<br/>LEFT JOIN customfield tables ...<br/>WHERE c.id != 1 AND c.visible = 1<br/>[AND c.id = :courseid | AND c.idnumber = :idnumber]<br/>ORDER BY cc.name, c.fullname
         
         DB-->>API: ResultSet
         
         loop For each course
-            API->>API: Format course data<br/>- Remove HTML from summary<br/>- Ensure all fields present
+            API->>API: Format course data
         end
         
         API-->>Client: Array of courses (JSON)
@@ -142,9 +155,9 @@ sequenceDiagram
     participant DB as Moodle Database
     
     HRMS->>WS: POST /webservice/rest/server.php
-    Note over HRMS,WS: wstoken + apikey + wsfunction + courseid
+    Note over HRMS,WS: wstoken + apikey + wsfunction<br/>+ courseid (optional)<br/>+ idnumber (optional)
     
-    WS->>API: get_course_participants(apikey, courseid)
+    WS->>API: get_course_participants(apikey, courseid, idnumber)
     
     API->>API: validate_parameters()
     API->>API: validate_api_key(apikey)
@@ -155,11 +168,14 @@ sequenceDiagram
         API->>API: validate_context(system)
         
         alt courseid > 0
-            API->>DB: SELECT users WHERE course_id=courseid
-        else courseid = 0
+            API->>DB: SELECT users WHERE course_id = courseid
+        else idnumber not empty
+            API->>DB: Resolve courseid from idnumber,<br/>then SELECT users for that course
+        else no filter
             API->>DB: SELECT users FROM all courses
         end
         
+        Note over DB: company_name from u.institution<br/>role from correlated subquery
         DB-->>API: Enrollment records with user info
         
         loop For each participant
@@ -179,25 +195,26 @@ sequenceDiagram
     participant API as local_hrms_external
     participant DB as Database
     
-    Client->>API: get_course_participants(apikey, courseid)
+    Client->>API: get_course_participants(apikey, courseid=0, idnumber='')
     
     API->>API: Validate parameters & API key
     
-    alt courseid = 0
+    alt courseid = 0 and idnumber empty
         Note over API: Get all participants from all courses
-        API->>DB: SELECT users FROM all courses<br/>JOIN user_enrolments<br/>JOIN enrol<br/>JOIN course<br/>LEFT JOIN user_info_data (branch)
-    else courseid > 0
-        Note over API: Get participants for specific course
-        API->>DB: SELECT users WHERE course_id = courseid<br/>JOIN user_enrolments<br/>JOIN enrol<br/>JOIN course<br/>LEFT JOIN user_info_data (branch)
+        API->>DB: SELECT CONCAT(u.id,'-',c.id) as id,<br/>u.id, u.email, u.firstname, u.lastname,<br/>COALESCE(u.institution,'') as company_name,<br/>c.id, c.idnumber, c.shortname, c.fullname,<br/>ue.timecreated,<br/>role subquery<br/>FROM user JOIN user_enrolments JOIN enrol JOIN course<br/>WHERE deleted=0 AND confirmed=1 AND visible=1
+    else courseid > 0 or idnumber
+        Note over API: Filter by specific course
+        API->>DB: Same query + AND c.id = :courseid
     end
     
     DB-->>API: Participant records
     
     loop For each participant
-        API->>API: Format data:<br/>- user_id<br/>- email<br/>- firstname, lastname<br/>- company_name (from branch)<br/>- course info<br/>- enrollment_date
+        API->>API: Format data:<br/>- user_id, email, firstname, lastname<br/>- company_name (from institution)<br/>- course_id, course_idnumber<br/>- course_shortname, course_name<br/>- enrollment_date<br/>- role
     end
     
     API-->>Client: Array of participants (JSON)
+```
 ```
 
 ---
@@ -280,7 +297,7 @@ sequenceDiagram
 
 ---
 
-## 5. Get All Course Results Flow (with Questionnaire)
+## 5. Get Users Flow
 
 ```mermaid
 sequenceDiagram
@@ -290,91 +307,81 @@ sequenceDiagram
     participant DB as Moodle Database
     
     HRMS->>WS: POST /webservice/rest/server.php
-    Note over HRMS,WS: wstoken + apikey + wsfunction + format
+    Note over HRMS,WS: wstoken + apikey + wsfunction<br/>+ status (all|active|suspended)<br/>+ email (optional)
     
-    WS->>API: get_all_course_results(apikey, format)
+    WS->>API: get_users(apikey, status, email)
+    
+    API->>API: validate_parameters()
+    API->>API: validate_api_key(apikey)
+    API->>API: Check status in allowed list
+    
+    alt API Key Invalid
+        API-->>HRMS: Error: Invalid API Key
+    else Invalid status value
+        API-->>HRMS: Error: invalidstatus
+    else Valid
+        API->>API: validate_context(system)
+        
+        alt status = 'active'
+            API->>DB: SELECT users WHERE suspended = 0
+        else status = 'suspended'
+            API->>DB: SELECT users WHERE suspended = 1
+        else status = 'all'
+            API->>DB: SELECT all non-deleted users
+        end
+        
+        alt email filter
+            Note over DB: AND u.email = :email
+        end
+        
+        DB-->>API: User records
+        
+        API-->>WS: Array of users
+        WS-->>HRMS: JSON Response
+    end
+```
+
+---
+
+## 6. Get Course Progress Flow
+
+```mermaid
+sequenceDiagram
+    participant HRMS as HRMS System
+    participant WS as Moodle Web Service
+    participant API as local_hrms_external
+    participant DB as Moodle Database
+    
+    HRMS->>WS: POST /webservice/rest/server.php
+    Note over HRMS,WS: wstoken + apikey + wsfunction<br/>+ courseid/idnumber + userid/email (all optional)
+    
+    WS->>API: get_course_progress(apikey, courseid, idnumber, userid, email)
     
     API->>API: validate_parameters()
     API->>API: validate_api_key(apikey)
     
     alt API Key Invalid
         API-->>HRMS: Error: Invalid API Key
-    else API Key Valid
+    else Valid
         API->>API: validate_context(system)
         
-        API->>DB: SELECT all enrollments with grades
-        DB-->>API: All enrollment records
+        API->>DB: SELECT enrolled users per course<br/>with modules_total (subquery)<br/>and modules_completed (subquery)
+        Note over DB: modules_total = visible modules<br/>with completion tracking enabled<br/>modules_completed = those completed<br/>by the user (completionstate >= 1)
         
-        loop For each enrollment
-            API->>DB: get_quiz_score(userid, courseid, 'pre')
-            DB-->>API: Pre-test score
-            
-            API->>DB: get_quiz_score(userid, courseid, 'post')
-            DB-->>API: Post-test score
-            
-            API->>DB: get_questionnaire_scores(userid, courseid)
-            Note over API,DB: Complex questionnaire analysis
-            DB-->>API: Questionnaire scores object
-            
-            API->>API: Merge all data:<br/>- User & course info<br/>- Grades & completion<br/>- Test scores<br/>- Questionnaire scores
+        DB-->>API: Progress rows
+        
+        loop For each row
+            API->>API: Calculate completion_percentage<br/>= modules_completed / modules_total * 100
         end
         
-        API-->>WS: Array of comprehensive results
-        WS-->>HRMS: JSON Response with all metrics
+        API-->>WS: Array of progress records
+        WS-->>HRMS: JSON Response
     end
-```
-
-### Detailed Flow with All Metrics
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant API as local_hrms_external
-    participant Helper as Helper Methods
-    participant DB as Database
-    
-    Client->>API: get_all_course_results(apikey, format='json')
-    
-    API->>API: Validate parameters & API key & context
-    
-    API->>DB: SELECT u.id, u.email, u.firstname, u.lastname,<br/>c.id, c.shortname, c.fullname,<br/>cc.timecompleted, gg.finalgrade<br/>FROM users JOIN enrollments JOIN courses<br/>LEFT JOIN completions, grades, user_info
-    
-    DB-->>API: All enrollment records
-    
-    loop For each (user, course) pair
-        Note over API,Helper: Calculate Pre-test Score
-        API->>Helper: get_quiz_score(userid, courseid, 'pre')
-        Helper->>DB: SELECT MAX(finalgrade)<br/>WHERE custom_field.value = '2'
-        DB-->>Helper: pretest_score
-        Helper-->>API: pretest_score (0.00 if none)
-        
-        Note over API,Helper: Calculate Post-test Score
-        API->>Helper: get_quiz_score(userid, courseid, 'post')
-        Helper->>DB: SELECT MAX(finalgrade)<br/>WHERE custom_field.value = '3'
-        DB-->>Helper: posttest_score
-        Helper-->>API: posttest_score (0.00 if none)
-        
-        Note over API,Helper: Calculate Questionnaire Scores
-        API->>Helper: get_questionnaire_scores(userid, courseid)
-        Helper->>Helper: See Questionnaire Scoring Flow (Section 6)
-        Helper-->>API: {
-            questionnaire_available,
-            score_materi,
-            score_trainer,
-            score_tempat,
-            score_total
-        }
-        
-        API->>API: Merge into result object:
-        Note over API: course_id, course_name, course_shortname,<br/>user_id, firstname, lastname, email,<br/>company_name, final_grade,<br/>pretest_score, posttest_score,<br/>completion_date, is_completed,<br/>questionnaire_available,<br/>score_materi, score_trainer,<br/>score_tempat, score_total
-    end
-    
-    API-->>Client: Array of comprehensive results (JSON)
 ```
 
 ---
 
-## 6. Questionnaire Scoring Flow
+## 7. Questionnaire Scoring Flow
 
 ### Complete Questionnaire Analysis Process
 
@@ -432,19 +439,19 @@ sequenceDiagram
                             questionnaire_available: 1 if total > 0,
                             score_materi: 0,
                             score_trainer: 0,
-                            score_tempat: 0,
+                            score_fasilitas: 0,
                             score_total: calculated
                         }
                     else choice_count == 9
                         Note over API: Perfect match with 9 choices
                         API->>API: score_materi = avg(v1, v2, v3)
                         API->>API: score_trainer = avg(v4, v5, v6)
-                        API->>API: score_tempat = avg(v7, v8, v9)
+                        API->>API: score_fasilitas = avg(v7, v8, v9)
                         API-->>API: Return {
                             questionnaire_available: 1,
                             score_materi: calculated,
                             score_trainer: calculated,
-                            score_tempat: calculated,
+                            score_fasilitas: calculated,
                             score_total: calculated
                         }
                     else Other choice count
@@ -453,7 +460,7 @@ sequenceDiagram
                             questionnaire_available: 1 if total > 0,
                             score_materi: 0,
                             score_trainer: 0,
-                            score_tempat: 0,
+                            score_fasilitas: 0,
                             score_total: calculated
                         }
                     end
@@ -493,7 +500,7 @@ flowchart TD
     CheckMatch -->|Yes| Check9{Choice count<br/>== 9?}
     Check9 -->|No| ReturnTotal2[Return:<br/>available=1 if total>0<br/>only score_total<br/>others=0]
     
-    Check9 -->|Yes| CalcBreakdown[Calculate breakdown:<br/>materi = avg v1-v3<br/>trainer = avg v4-v6<br/>tempat = avg v7-v9]
+    Check9 -->|Yes| CalcBreakdown[Calculate breakdown:<br/>materi = avg v1-v3<br/>trainer = avg v4-v6<br/>fasilitas = avg v7-v9]
     
     CalcBreakdown --> ReturnAll[Return:<br/>available=1<br/>All 4 scores<br/>with breakdown]
     
@@ -518,7 +525,273 @@ flowchart TD
 
 ---
 
-## 7. Authentication Flow
+## 8. User Management Flows
+
+### set_user_suspension
+
+```mermaid
+sequenceDiagram
+    participant HRMS as HRMS System
+    participant WS as Moodle Web Service
+    participant API as local_hrms_external
+    participant DB as Moodle Database
+    
+    HRMS->>WS: POST /webservice/rest/server.php
+    Note over HRMS,WS: wstoken + apikey + wsfunction<br/>+ userid or email<br/>+ suspended (1=suspend, 0=unsuspend)
+    
+    WS->>API: set_user_suspension(apikey, userid, email, suspended)
+    
+    API->>API: validate_parameters()
+    API->>API: validate_api_key(apikey)
+    
+    alt API Key Invalid
+        API-->>HRMS: Error: Invalid API Key
+    else Valid
+        API->>API: validate_context(system)
+        
+        alt userid > 0
+            API->>DB: SELECT user WHERE id = :userid
+        else email not empty
+            API->>DB: SELECT user WHERE email = :email
+        end
+        
+        DB-->>API: User record
+        
+        alt User not found
+            API-->>HRMS: Error: invaliduser
+        else User is site admin
+            API-->>HRMS: Error: useradminodelete
+        else OK
+            API->>DB: UPDATE user SET suspended = :value<br/>(only if value changes)
+            API-->>HRMS: {success, userid, email,<br/>suspended, message}
+        end
+    end
+```
+
+### create_user
+
+```mermaid
+sequenceDiagram
+    participant HRMS as HRMS System
+    participant WS as Moodle Web Service
+    participant API as local_hrms_external
+    participant DB as Moodle Database
+    
+    HRMS->>WS: POST /webservice/rest/server.php
+    Note over HRMS,WS: wstoken + apikey + wsfunction<br/>+ username, email, firstname, lastname, password, ...
+    
+    WS->>API: create_user(apikey, username, email, ...)
+    
+    API->>API: validate_parameters()
+    API->>API: validate_api_key(apikey)
+    
+    alt API Key Invalid
+        API-->>HRMS: Error: Invalid API Key
+    else Valid
+        API->>API: validate_context(system)
+        API->>DB: Check email & username uniqueness
+        
+        alt Duplicate email
+            API-->>HRMS: Error: emailalreadyused
+        else Duplicate username
+            API-->>HRMS: Error: usernameexists
+        else OK
+            API->>DB: user_create_user(userdata)
+            DB-->>API: New user ID
+            API-->>HRMS: {id, username, email, firstname, lastname,<br/>institution, department, phone1, city,<br/>country, auth, timecreated}
+        end
+    end
+```
+
+### update_user
+
+```mermaid
+sequenceDiagram
+    participant HRMS as HRMS System
+    participant WS as Moodle Web Service
+    participant API as local_hrms_external
+    participant DB as Moodle Database
+    
+    HRMS->>WS: POST /webservice/rest/server.php
+    Note over HRMS,WS: wstoken + apikey + wsfunction<br/>+ userid or email (identify)<br/>+ fields to update (only non-empty applied)
+    
+    WS->>API: update_user(apikey, userid, email, ...)
+    
+    API->>API: validate_parameters()
+    API->>API: validate_api_key(apikey)
+    
+    alt API Key Invalid
+        API-->>HRMS: Error: Invalid API Key
+    else Valid
+        API->>API: validate_context(system)
+        API->>DB: Resolve user by userid or email
+        
+        alt User not found
+            API-->>HRMS: Error: invaliduser
+        else User is site admin
+            API-->>HRMS: Error: useradminodelete
+        else OK
+            Note over API: Apply only non-empty fields
+            API->>DB: user_update_user(updatedata)
+            API-->>HRMS: Updated user object
+        end
+    end
+```
+
+---
+
+## 9. Course Management Flows
+
+### create_course
+
+```mermaid
+sequenceDiagram
+    participant HRMS as HRMS System
+    participant WS as Moodle Web Service
+    participant API as local_hrms_external
+    participant DB as Moodle Database
+    
+    HRMS->>WS: POST /webservice/rest/server.php
+    Note over HRMS,WS: wstoken + apikey + wsfunction<br/>+ fullname, shortname, idnumber, ...
+    
+    WS->>API: create_course(apikey, fullname, shortname, idnumber, ...)
+    
+    API->>API: validate_parameters()
+    API->>API: validate_api_key(apikey)
+    
+    alt API Key Invalid
+        API-->>HRMS: Error: Invalid API Key
+    else Valid
+        API->>API: validate_context(system)
+        API->>DB: Check category exists
+        API->>DB: Check shortname uniqueness
+        
+        alt Shortname taken
+            API-->>HRMS: Error: shortnametaken
+        else OK
+            API->>DB: create_course(coursedata)
+            API->>DB: Set jp custom field value
+            API-->>HRMS: {id, shortname, fullname, idnumber,<br/>summary, categoryid, startdate,<br/>enddate, visible, jp}
+        end
+    end
+```
+
+### update_course
+
+```mermaid
+sequenceDiagram
+    participant HRMS as HRMS System
+    participant WS as Moodle Web Service
+    participant API as local_hrms_external
+    participant DB as Moodle Database
+    
+    HRMS->>WS: POST /webservice/rest/server.php
+    Note over HRMS,WS: wstoken + apikey + wsfunction<br/>+ idnumber (identify course)<br/>+ fields to update (only non-default applied)
+    
+    WS->>API: update_course(apikey, idnumber, fullname, shortname, ...)
+    
+    API->>API: validate_parameters()
+    API->>API: validate_api_key(apikey)
+    
+    alt API Key Invalid
+        API-->>HRMS: Error: Invalid API Key
+    else Valid
+        API->>API: validate_context(system)
+        API->>DB: Lookup course by idnumber
+        
+        alt Course not found
+            API-->>HRMS: Error: MUST_EXIST failure
+        else OK
+            Note over API: Apply only non-default field values
+            API->>DB: update_course(coursedata)
+            API->>DB: Update jp custom field (if jp > 0)
+            API-->>HRMS: Updated course object
+        end
+    end
+```
+
+---
+
+## 10. Enrolment Management Flows
+
+### enrol_user
+
+```mermaid
+sequenceDiagram
+    participant HRMS as HRMS System
+    participant WS as Moodle Web Service
+    participant API as local_hrms_external
+    participant DB as Moodle Database
+    
+    HRMS->>WS: POST /webservice/rest/server.php
+    Note over HRMS,WS: wstoken + apikey + wsfunction<br/>+ userid or email<br/>+ courseid or idnumber<br/>+ role (optional)
+    
+    WS->>API: enrol_user(apikey, userid, email, courseid, idnumber, role)
+    
+    API->>API: validate_parameters()
+    API->>API: validate_api_key(apikey)
+    
+    alt API Key Invalid
+        API-->>HRMS: Error: Invalid API Key
+    else Valid
+        API->>API: validate_context(system)
+        API->>DB: Resolve user (by userid or email)
+        API->>DB: Resolve course (by courseid or idnumber)
+        
+        alt User or course not found
+            API-->>HRMS: Error: invaliduser / MUST_EXIST
+        else OK
+            API->>DB: Get or create manual enrol instance
+            
+            alt role provided
+                API->>DB: Lookup role by shortname
+            else no role
+                Note over API: Use enrol instance default role
+            end
+            
+            API->>DB: enrol_user (idempotent)
+            API-->>HRMS: {success, userid, email,<br/>courseid, idnumber, role, message}
+        end
+    end
+```
+
+### unenrol_user
+
+```mermaid
+sequenceDiagram
+    participant HRMS as HRMS System
+    participant WS as Moodle Web Service
+    participant API as local_hrms_external
+    participant DB as Moodle Database
+    
+    HRMS->>WS: POST /webservice/rest/server.php
+    Note over HRMS,WS: wstoken + apikey + wsfunction<br/>+ userid or email<br/>+ courseid or idnumber
+    
+    WS->>API: unenrol_user(apikey, userid, email, courseid, idnumber)
+    
+    API->>API: validate_parameters()
+    API->>API: validate_api_key(apikey)
+    
+    alt API Key Invalid
+        API-->>HRMS: Error: Invalid API Key
+    else Valid
+        API->>API: validate_context(system)
+        API->>DB: Resolve user and course
+        
+        alt User not enrolled
+            API-->>HRMS: Error: notenrolled
+        else OK
+            loop For each enrol instance in course
+                API->>DB: unenrol_user(instance, userid)
+            end
+            API-->>HRMS: {success, userid, courseid, message}
+        end
+    end
+```
+
+---
+
+## 11. Authentication Flow
 
 ```mermaid
 sequenceDiagram
@@ -587,7 +860,7 @@ sequenceDiagram
 
 ---
 
-## 8. Error Handling Flow
+## 12. Error Handling Flow
 
 ```mermaid
 sequenceDiagram
@@ -702,11 +975,24 @@ These diagrams are referenced in:
 
 ---
 
-**Last Updated**: 2026-02-01  
-**Version**: 1.1  
+**Last Updated**: 2026-03-25  
+**Version**: 2.0  
 **Author**: Prihantoosa
 
 ## Changelog
+
+### Version 2.0 (2026-03-25)
+- Renumbered all sections to accommodate new diagrams
+- Section 2 (Get Active Courses): updated params (courseid, idnumber) and SQL
+- Section 3 (Get Course Participants): updated params (idnumber), replaced user_info_data with u.institution, added role field
+- Section 4 (Get Course Results): removed pre/post-test score sub-calls, added student role filter, added idnumber param
+- Section 5 (Get Users): new diagram - list users with status/email filter
+- Section 6 (Get Course Progress): new diagram - activity completion per enrolled user
+- Section 7 (Questionnaire Scoring): renamed score_tempat → score_fasilitas throughout
+- Section 8 (User Management): new diagrams for set_user_suspension, create_user, update_user
+- Section 9 (Course Management): new diagrams for create_course, update_course
+- Section 10 (Enrolment Management): new diagrams for enrol_user, unenrol_user
+- Removed Section 5 (Get All Course Results) — function no longer a registered endpoint
 
 ### Version 1.1 (2026-02-01)
 - Added Get All Course Results Flow with questionnaire integration
