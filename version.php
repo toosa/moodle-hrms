@@ -25,8 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component    = 'local_hrms';
-$plugin->release      = '1.4.2';
-$plugin->version      = 2026041601;
+$plugin->release      = '1.5.0';
+$plugin->version      = 2026041602;
 $plugin->requires     = 2024100700;
 $plugin->supported    = [405, 501];
 $plugin->maturity     = MATURITY_STABLE;

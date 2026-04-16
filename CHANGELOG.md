@@ -1,5 +1,22 @@
 # HRMS Integration - Changelog
 
+## Version 1.5.0 (2026-04-16)
+
+### New Features
+- **`get_active_courses`: tambah parameter filter `visible`**
+  - `visible=1` (default) — hanya kursus aktif/visible. *Backward compatible.*
+  - `visible=0` — hanya kursus tidak aktif/hidden.
+  - `visible=-1` — semua kursus tanpa filter visibilitas.
+
+### API Changes
+Parameter baru bersifat opsional dengan default `1`, sehingga tidak ada breaking change:
+- `local_hrms_get_active_courses` — parameter baru: `visible` (int, default=1)
+
+### Documentation Updated
+- `API_REFERENCE.md`, `API_GUIDE.md`, `README.md`, `QUICKREF.md`, `DESIGN.md`, `DIAGRAMS.md`
+
+---
+
 ## Version 1.1.0 (2026-01-12)
 
 ### Major Changes
