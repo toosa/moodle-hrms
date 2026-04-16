@@ -39,25 +39,28 @@ class local_hrms_external extends external_api {
         return new external_function_parameters([
             'apikey'   => new external_value(PARAM_TEXT, 'API key for authentication'),
             'courseid' => new external_value(PARAM_INT,  'Course ID filter', VALUE_DEFAULT, 0),
-            'idnumber' => new external_value(PARAM_TEXT, 'Course ID number filter', VALUE_DEFAULT, '')
+            'idnumber' => new external_value(PARAM_TEXT, 'Course ID number filter', VALUE_DEFAULT, ''),
+            'visible'  => new external_value(PARAM_INT,  'Visibility filter: 1=active only, 0=inactive only, -1=all', VALUE_DEFAULT, 1)
         ]);
     }
 
     /**
-     * Get list of active courses
+     * Get list of courses with optional visibility filter
      * @param string $apikey API key
      * @param int $courseid Course ID filter (0 = all courses)
      * @param string $idnumber Course ID number filter (empty = all courses, ignored if courseid > 0)
-     * @return array List of active courses
+     * @param int $visible Visibility filter: 1 = active/visible only (default), 0 = inactive/hidden only, -1 = all
+     * @return array List of courses
      */
-    public static function get_active_courses($apikey, $courseid = 0, $idnumber = '') {
+    public static function get_active_courses($apikey, $courseid = 0, $idnumber = '', $visible = 1) {
         global $DB;
 
         // Validate parameters
         $params = self::validate_parameters(self::get_active_courses_parameters(), [
             'apikey'   => $apikey,
             'courseid' => $courseid,
-            'idnumber' => $idnumber
+            'idnumber' => $idnumber,
+            'visible'  => $visible
         ]);
 
         // Validate API key
@@ -69,7 +72,7 @@ class local_hrms_external extends external_api {
         $context = context_system::instance();
         self::validate_context($context);
 
-        // Get active courses (exclude site course)
+        // Get courses (exclude site course)
         $sql = "SELECT c.id, c.idnumber, c.shortname, c.fullname, c.summary,
                        c.startdate, c.enddate, c.visible,
                        cc.id as category_id, cc.name as category_name,
@@ -79,10 +82,17 @@ class local_hrms_external extends external_api {
                 LEFT JOIN {customfield_category} cfc ON cfc.component = 'core_course' AND cfc.area = 'course'
                 LEFT JOIN {customfield_field} cff ON cff.shortname = 'jp' AND cff.categoryid = cfc.id
                 LEFT JOIN {customfield_data} cfd ON cfd.instanceid = c.id AND cfd.fieldid = cff.id
-                WHERE c.id != :siteid 
-                AND c.visible = 1";
+                WHERE c.id != :siteid";
 
         $sqlparams = ['siteid' => SITEID];
+
+        // Apply visibility filter: 1 = visible only, 0 = hidden only, -1 = all
+        if ($params['visible'] === 1) {
+            $sql .= " AND c.visible = 1";
+        } else if ($params['visible'] === 0) {
+            $sql .= " AND c.visible = 0";
+        }
+        // -1 = no visibility filter applied
 
         if ($params['courseid'] > 0) {
             $sql .= " AND c.id = :courseid";

@@ -28,7 +28,7 @@
 ## 1. `local_hrms_get_active_courses`
 
 **Tipe**: Read  
-**Deskripsi**: Mengembalikan daftar semua kursus yang sedang aktif (visible = 1), beserta informasi kategori dan custom field JP.
+**Deskripsi**: Mengembalikan daftar kursus beserta informasi kategori dan custom field JP. Secara default hanya menampilkan kursus aktif (`visible = 1`); gunakan parameter `visible` untuk mengambil kursus tidak aktif atau semua kursus.
 
 > **Alias**: `local_hrms_get_all_active_courses` memanggil fungsi yang sama.
 
@@ -39,6 +39,7 @@
 | `apikey` | string | Ya | — | API key HRMS |
 | `courseid` | int | Tidak | `0` | ID internal kursus. `0` = semua kursus |
 | `idnumber` | string | Tidak | `""` | Nomor ID kursus. Digunakan jika `courseid` = 0 |
+| `visible` | int | Tidak | `1` | Filter visibilitas: `1` = aktif saja, `0` = tidak aktif saja, `-1` = semua kursus |
 
 #### Response Fields
 
@@ -53,7 +54,7 @@
 | `category_name` | string | Nama kategori |
 | `startdate` | int | Tanggal mulai (Unix timestamp) |
 | `enddate` | int | Tanggal berakhir (Unix timestamp), `0` = tidak ada batas |
-| `visible` | int | Visibilitas: `1` = tampil |
+| `visible` | int | Visibilitas: `1` = tampil, `0` = disembunyikan |
 | `jp` | string | Nilai custom field `jp` (kosong jika tidak diset) |
 
 #### Contoh Request
