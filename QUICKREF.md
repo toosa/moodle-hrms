@@ -80,13 +80,29 @@ POST https://yourmoodle.com/webservice/rest/server.php
 
 **Function**: `local_hrms_get_active_courses`
 
+**Extra Parameters**:
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| courseid | int | No | 0 | Course ID (0 = all) |
+| idnumber | string | No | "" | Course ID number (used if courseid = 0) |
+| visible | int | No | 1 | `1` = active only, `0` = inactive only, `-1` = all |
+
 **Request**:
 ```bash
+# Kursus aktif (default)
 curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
   -d "wstoken=YOUR_TOKEN" \
   -d "wsfunction=local_hrms_get_active_courses" \
   -d "moodlewsrestformat=json" \
   -d "apikey=YOUR_API_KEY"
+
+# Semua kursus (aktif + tidak aktif)
+curl -X POST "https://yourmoodle.com/webservice/rest/server.php" \
+  -d "wstoken=YOUR_TOKEN" \
+  -d "wsfunction=local_hrms_get_active_courses" \
+  -d "moodlewsrestformat=json" \
+  -d "apikey=YOUR_API_KEY" \
+  -d "visible=-1"
 ```
 
 **Response**:

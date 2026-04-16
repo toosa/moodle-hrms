@@ -148,7 +148,7 @@
 │  Static Methods (Read):                                     │
 │                                                             │
 │  + get_active_courses_parameters()                          │
-│  + get_active_courses(apikey, courseid, idnumber)           │
+│  + get_active_courses(apikey, courseid, idnumber, visible)           │
 │  + get_active_courses_returns()                             │
 │                                                             │
 │  + get_course_participants_parameters()                     │
@@ -912,12 +912,13 @@ The plugin exposes **13 API endpoints** (via the `HRMS Integration Service` web 
 #### READ endpoints
 
 #### 1. get_active_courses
-Returns a list of all visible courses (excluding site course).
+Returns a list of courses (excluding site course).
 
 **Parameters:**
 - `apikey` (required): API key for authentication
 - `courseid` (optional, default=0): Filter by specific course ID; 0 = no filter
 - `idnumber` (optional, default=''): Filter by course ID number; ignored if `courseid > 0`
+- `visible` (optional, default=1): Visibility filter: `1` = active/visible only, `0` = inactive/hidden only, `-1` = all courses
 
 **Returns:** Array of course objects with id, idnumber, shortname, fullname, summary, category_id, category_name, startdate, enddate, visible, jp
 
@@ -1480,7 +1481,7 @@ add_to_log(
 - Added write endpoints: `create_course`, `update_course`, `create_user`, `update_user`, `enrol_user`, `unenrol_user`, `set_user_suspension`
 - Added `get_users` endpoint (user list with status/email filter)
 - Added `get_course_progress` endpoint (activity-level completion per user)
-- `get_active_courses`: added `courseid`/`idnumber` filters; added `idnumber`, `category_id`, `category_name`, `jp` fields; ordered by category then fullname
+- `get_active_courses`: added `courseid`/`idnumber` filters; added `visible` filter (1=active, 0=inactive, -1=all); added `idnumber`, `category_id`, `category_name`, `jp` fields; ordered by category then fullname
 - `get_course_participants`: added `idnumber` filter; replaced `user_info_data` branch lookup with `u.institution`; added `course_idnumber` and `role` fields
 - `get_course_results`: added `idnumber` filter; restricted to `student` role; added `course_idnumber` field; removed pre/post-test scores from this endpoint
 - Renamed `score_tempat` → `score_fasilitas` throughout questionnaire scoring

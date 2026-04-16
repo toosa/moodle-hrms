@@ -147,7 +147,7 @@ Selalu berupa JSON array atau JSON object sesuai fungsi yang dipanggil.
 ### 4.1 `local_hrms_get_active_courses`
 
 **Tipe**: Read  
-**Deskripsi**: Mengembalikan daftar semua kursus yang sedang aktif (visible = 1), beserta informasi kategori dan custom field JP.
+**Deskripsi**: Mengembalikan daftar kursus beserta informasi kategori dan custom field JP. Secara default hanya menampilkan kursus aktif (`visible = 1`); gunakan parameter `visible` untuk mengambil kursus tidak aktif atau semua kursus.
 
 > **Alias**: `local_hrms_get_all_active_courses` memanggil fungsi yang sama.
 
@@ -156,6 +156,9 @@ Selalu berupa JSON array atau JSON object sesuai fungsi yang dipanggil.
 | Parameter | Tipe | Wajib | Default | Keterangan |
 |-----------|------|-------|---------|------------|
 | `apikey` | string | Ya | — | API key HRMS |
+| `courseid` | int | Tidak | `0` | ID internal kursus. `0` = semua kursus |
+| `idnumber` | string | Tidak | `""` | Nomor ID kursus. Digunakan jika `courseid` = 0 |
+| `visible` | int | Tidak | `1` | Filter visibilitas: `1` = aktif saja, `0` = tidak aktif saja, `-1` = semua kursus |
 
 #### Response Fields
 
@@ -176,7 +179,7 @@ Selalu berupa JSON array atau JSON object sesuai fungsi yang dipanggil.
 #### Contoh Request
 
 ```bash
-# Semua kursus aktif
+# Semua kursus aktif (default)
 curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   -d "wstoken=TOKEN_ANDA" \
   -d "wsfunction=local_hrms_get_active_courses" \
@@ -198,6 +201,22 @@ curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
   -d "moodlewsrestformat=json" \
   -d "apikey=APIKEY_ANDA" \
   -d "idnumber=TRAIN-2026-001"
+
+# Kursus tidak aktif (visible=0)
+curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
+  -d "wstoken=TOKEN_ANDA" \
+  -d "wsfunction=local_hrms_get_active_courses" \
+  -d "moodlewsrestformat=json" \
+  -d "apikey=APIKEY_ANDA" \
+  -d "visible=0"
+
+# Semua kursus tanpa filter visibilitas
+curl -X POST "https://moodle.example.com/webservice/rest/server.php" \
+  -d "wstoken=TOKEN_ANDA" \
+  -d "wsfunction=local_hrms_get_active_courses" \
+  -d "moodlewsrestformat=json" \
+  -d "apikey=APIKEY_ANDA" \
+  -d "visible=-1"
 ```
 
 #### Contoh Response
@@ -1324,9 +1343,9 @@ class HrmsClient
         return $data;
     }
 
-    public function getActiveCourses(int $courseId = 0, string $idnumber = ''): array
+    public function getActiveCourses(int $courseId = 0, string $idnumber = '', int $visible = 1): array
     {
-        return $this->call('local_hrms_get_active_courses', ['courseid' => $courseId, 'idnumber' => $idnumber]);
+        return $this->call('local_hrms_get_active_courses', ['courseid' => $courseId, 'idnumber' => $idnumber, 'visible' => $visible]);
     }
 
     public function getCourseParticipants(int $courseId = 0, string $idnumber = ''): array
@@ -1508,8 +1527,8 @@ class HrmsClient:
             raise ValueError(f"[{data['errorcode']}] {data['message']}")
         return data
 
-    def get_active_courses(self, course_id: int = 0, idnumber: str = ''):
-        return self._call('local_hrms_get_active_courses', courseid=course_id, idnumber=idnumber)
+    def get_active_courses(self, course_id: int = 0, idnumber: str = '', visible: int = 1):
+        return self._call('local_hrms_get_active_courses', courseid=course_id, idnumber=idnumber, visible=visible)
 
     def get_course_participants(self, course_id: int = 0, idnumber: str = ''):
         return self._call('local_hrms_get_course_participants', courseid=course_id, idnumber=idnumber)
@@ -1646,7 +1665,7 @@ class HrmsClient {
     return data;
   }
 
-  getActiveCourses(courseId = 0, idnumber = '')         { return this.call('local_hrms_get_active_courses', { courseid: courseId, idnumber }); }
+  getActiveCourses(courseId = 0, idnumber = '', visible = 1)         { return this.call('local_hrms_get_active_courses', { courseid: courseId, idnumber, visible }); }
   getCourseParticipants(courseId = 0, idnumber = '') { return this.call('local_hrms_get_course_participants', { courseid: courseId, idnumber }); }
   getCourseResults(courseId = 0, userId = 0, idnumber = '') {
     return this.call('local_hrms_get_course_results', { courseid: courseId, userid: userId, idnumber });
@@ -1783,7 +1802,7 @@ class Hrms_client
         return $data;
     }
 
-    public function get_active_courses($course_id = 0, $idnumber = '')         { return $this->call('local_hrms_get_active_courses', ['courseid' => (int)$course_id, 'idnumber' => $idnumber]); }
+    public function get_active_courses($course_id = 0, $idnumber = '', $visible = 1)         { return $this->call('local_hrms_get_active_courses', ['courseid' => (int)$course_id, 'idnumber' => $idnumber, 'visible' => (int)$visible]); }
     public function get_course_participants($course_id = 0, $idnumber = '') {
         return $this->call('local_hrms_get_course_participants', ['courseid' => (int)$course_id, 'idnumber' => $idnumber]);
     }

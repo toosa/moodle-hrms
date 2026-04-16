@@ -325,7 +325,7 @@ Layer 5: Parameter Validation
 
 | Function | Type | Parameters | Purpose |
 |----------|------|------------|---------|
-| `local_hrms_get_active_courses` | Read | apikey | Get all visible courses |
+| `local_hrms_get_active_courses` | Read | apikey, visible | Get courses with optional visibility filter |
 | `local_hrms_get_course_participants` | Read | apikey, courseid | Get enrolled participants |
 | `local_hrms_get_course_results` | Read | apikey, courseid, userid | Get learning results with scores |
 | `local_hrms_get_all_course_results` | Read | apikey, courseid | Get results with questionnaire scores |
@@ -333,7 +333,12 @@ Layer 5: Parameter Validation
 ### 1. Get Active Courses
 **Function**: `local_hrms_get_active_courses`
 
-Returns list of all visible/active courses in the system.
+Returns courses based on visibility filter. By default returns only active (visible) courses.
+
+**Parameters**:
+- `courseid` (optional): Specific course ID (0 = all courses)
+- `idnumber` (optional): Course ID number (used if courseid = 0)
+- `visible` (optional, default=1): `1` = active/visible only, `0` = inactive/hidden only, `-1` = all courses
 
 **Response Fields**:
 - `id`: Course ID
@@ -638,7 +643,11 @@ php ../../admin/cli/upgrade.php --non-interactive
 ### Function-Specific Parameters
 
 #### get_active_courses
-No additional parameters required.
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `courseid` | int | No | 0 | Specific course ID (0 = all courses) |
+| `idnumber` | string | No | "" | Course ID number (used if courseid = 0) |
+| `visible` | int | No | 1 | Visibility filter: `1` = active only, `0` = inactive only, `-1` = all |
 
 #### get_course_participants
 | Parameter | Type | Required | Default | Description |

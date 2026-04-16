@@ -76,7 +76,7 @@ sequenceDiagram
     HRMS->>WS: POST /webservice/rest/server.php
     Note over HRMS,WS: wstoken + apikey + wsfunction<br/>+ courseid (optional)<br/>+ idnumber (optional)
     
-    WS->>API: local_hrms_get_active_courses(apikey, courseid, idnumber)
+    WS->>API: local_hrms_get_active_courses(apikey, courseid, idnumber, visible)
     
     API->>API: validate_parameters()
     API->>API: validate_api_key(apikey)
@@ -87,11 +87,11 @@ sequenceDiagram
         API->>API: validate_context(system)
         
         alt courseid > 0
-            API->>DB: SELECT courses WHERE c.id = :courseid AND visible = 1
+            API->>DB: SELECT courses WHERE c.id = :courseid (filtered by visible)
         else idnumber not empty
-            API->>DB: SELECT courses WHERE c.idnumber = :idnumber AND visible = 1
+            API->>DB: SELECT courses WHERE c.idnumber = :idnumber (filtered by visible)
         else no filter
-            API->>DB: SELECT all courses WHERE visible = 1
+            API->>DB: SELECT all courses (filtered by visible)
         end
         
         Note over DB: JOIN course_categories<br/>LEFT JOIN customfield_data (jp)
@@ -115,7 +115,7 @@ sequenceDiagram
     participant Validator
     participant DB as Database
     
-    Client->>API: get_active_courses(apikey, courseid=0, idnumber='')
+    Client->>API: get_active_courses(apikey, courseid=0, idnumber='', visible=1)
     
     API->>Validator: validate_parameters()
     Validator-->>API: params validated
