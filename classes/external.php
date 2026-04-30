@@ -690,7 +690,7 @@ class local_hrms_external extends external_api {
             new external_single_structure([
                 'id'          => new external_value(PARAM_INT,   'User ID'),
                 'username'    => new external_value(PARAM_TEXT,  'Username'),
-                'email'       => new external_value(PARAM_EMAIL, 'User email'),
+                'email'       => new external_value(PARAM_TEXT,  'User email'),
                 'firstname'   => new external_value(PARAM_TEXT,  'First name'),
                 'lastname'    => new external_value(PARAM_TEXT,  'Last name'),
                 'institution' => new external_value(PARAM_TEXT,  'Institution / company name'),

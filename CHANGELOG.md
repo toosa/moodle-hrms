@@ -1,5 +1,13 @@
 # HRMS Integration - Changelog
 
+## Version 1.5.2 (2026-04-30)
+
+### Bug Fixes
+- **`get_users`: fix `invalid_response_exception` pada field `email` di response**
+  - Field `email` di `get_users_returns()` diubah dari `PARAM_EMAIL` ke `PARAM_TEXT` agar user dengan format email non-standar (misal dari LDAP/SSO) tidak menyebabkan error saat response dikembalikan.
+
+---
+
 ## Version 1.5.1 (2026-04-30)
 
 ### Bug Fixes
