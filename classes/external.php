@@ -606,7 +606,7 @@ class local_hrms_external extends external_api {
         return new external_function_parameters([
             'apikey'  => new external_value(PARAM_TEXT,  'API key for authentication'),
             'status'  => new external_value(PARAM_ALPHA, 'Filter by status: all, active, suspended', VALUE_DEFAULT, 'all'),
-            'email'   => new external_value(PARAM_EMAIL, 'Filter by exact email address', VALUE_DEFAULT, ''),
+            'email'   => new external_value(PARAM_TEXT, 'Filter by exact email address (empty or 0 = no filter)', VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -647,9 +647,11 @@ class local_hrms_external extends external_api {
             $where .= ' AND u.suspended = 1';
         }
 
-        if (!empty($params['email'])) {
+        // Treat '0', '0.0', or non-email strings as empty (no filter)
+        $emailfilter = trim((string)$params['email']);
+        if (!empty($emailfilter) && $emailfilter !== '0' && filter_var($emailfilter, FILTER_VALIDATE_EMAIL)) {
             $where .= ' AND u.email = :email';
-            $sqlparams['email'] = $params['email'];
+            $sqlparams['email'] = $emailfilter;
         }
 
         $sql = "SELECT u.id, u.username, u.email, u.firstname, u.lastname,
