@@ -1,5 +1,14 @@
 # HRMS Integration - Changelog
 
+## Version 1.5.1 (2026-04-30)
+
+### Bug Fixes
+- **`get_users`: fix `invalid_parameter_exception` saat `email=0` dikirim**
+  - Parameter `email` diubah dari `PARAM_EMAIL` ke `PARAM_TEXT` agar nilai `0` atau string kosong tidak menyebabkan error validasi Moodle.
+  - Validasi format email dilakukan secara manual: hanya diterapkan sebagai filter SQL jika nilainya merupakan email valid.
+
+---
+
 ## Version 1.5.0 (2026-04-16)
 
 ### New Features
