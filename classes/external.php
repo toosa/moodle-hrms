@@ -604,9 +604,10 @@ class local_hrms_external extends external_api {
      */
     public static function get_users_parameters() {
         return new external_function_parameters([
-            'apikey'  => new external_value(PARAM_TEXT,  'API key for authentication'),
-            'status'  => new external_value(PARAM_ALPHA, 'Filter by status: all, active, suspended', VALUE_DEFAULT, 'all'),
-            'email'   => new external_value(PARAM_TEXT, 'Filter by exact email address (empty or 0 = no filter)', VALUE_DEFAULT, ''),
+            'apikey'       => new external_value(PARAM_TEXT,  'API key for authentication'),
+            'status'       => new external_value(PARAM_ALPHA, 'Filter by status: all, active, suspended', VALUE_DEFAULT, 'all'),
+            'email'        => new external_value(PARAM_TEXT, 'Filter by exact email address (empty or 0 = no filter)', VALUE_DEFAULT, ''),
+            'email_domain' => new external_value(PARAM_TEXT, 'Filter by email domain e.g. example.com (empty = no filter)', VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -617,13 +618,14 @@ class local_hrms_external extends external_api {
      * @param string $email  Filter by exact email address (empty = all)
      * @return array List of users
      */
-    public static function get_users($apikey, $status = 'all', $email = '') {
+    public static function get_users($apikey, $status = 'all', $email = '', $email_domain = '') {
         global $DB;
 
         $params = self::validate_parameters(self::get_users_parameters(), [
-            'apikey'  => $apikey,
-            'status'  => $status,
-            'email'   => $email,
+            'apikey'       => $apikey,
+            'status'       => $status,
+            'email'        => $email,
+            'email_domain' => $email_domain,
         ]);
 
         if (!self::validate_api_key($params['apikey'])) {
@@ -652,6 +654,15 @@ class local_hrms_external extends external_api {
         if (!empty($emailfilter) && $emailfilter !== '0' && filter_var($emailfilter, FILTER_VALIDATE_EMAIL)) {
             $where .= ' AND u.email = :email';
             $sqlparams['email'] = $emailfilter;
+        }
+
+        // Filter by email domain (e.g. 'example.com')
+        $domainfilter = trim((string)$params['email_domain']);
+        // Strip leading '@' if provided
+        $domainfilter = ltrim($domainfilter, '@');
+        if (!empty($domainfilter) && $domainfilter !== '0') {
+            $where .= ' AND ' . $DB->sql_like('u.email', ':email_domain', false);
+            $sqlparams['email_domain'] = '%@' . $domainfilter;
         }
 
         $sql = "SELECT u.id, u.username, u.email, u.firstname, u.lastname,

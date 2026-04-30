@@ -1,5 +1,15 @@
 # HRMS Integration - Changelog
 
+## Version 1.5.3 (2026-04-30)
+
+### New Features
+- **`get_users`: tambah parameter filter `email_domain`**
+  - Filter user berdasarkan domain email, misal `email_domain=example.com`.
+  - Prefix `@` opsional — `@example.com` dan `example.com` keduanya valid.
+  - Bersifat case-insensitive. Bisa dikombinasikan dengan filter `status`.
+
+---
+
 ## Version 1.5.2 (2026-04-30)
 
 ### Bug Fixes
