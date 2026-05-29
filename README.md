@@ -18,7 +18,7 @@ A comprehensive web service plugin for Moodle that provides REST API endpoints f
 
 ## 📐 Architecture & Design
 
-### System Architecture
+### System Architecture  
 
 ```
 ┌─────────────────────┐
